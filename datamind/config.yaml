@@ -1,0 +1,33 @@
+active_dataset: "global_development"
+
+datasets:
+  global_development:
+    name: "Our World in Data - Global Health & Development"
+    table_name: "GLOBAL_INDICATORS"
+    description: "Multi-year indicators (2018-2023) across major global economies."
+    schema_description: |
+      Table: GLOBAL_INDICATORS
+      Columns:
+      - country (VARCHAR): Full country name (e.g. 'India', 'United States', 'China', 'Germany', 'Japan', 'Brazil', 'United Kingdom', 'France', 'Canada', 'Australia', 'South Africa', 'Italy', 'Russia', 'Mexico')
+      - country_code (VARCHAR): 3-letter ISO code (e.g. 'IND', 'USA', 'CHN', 'DEU', 'JPN', 'BRA', 'GBR', 'FRA', 'CAN', 'AUS', 'ZAF', 'ITA', 'RUS', 'MEX')
+      - year (INT): Calendar year (values range from 2018 to 2023)
+      - gdp_per_capita (FLOAT): Gross Domestic Product per capita in current USD ($)
+      - life_expectancy (FLOAT): Average life expectancy at birth in years
+      - population (BIGINT): Total country population count
+      - co2_emissions_mt (FLOAT): Carbon dioxide emissions in million metric tons (MT)
+      - access_to_electricity_pct (FLOAT): Percentage of population with electricity access (%)
+
+  student_academics:
+    name: "UCI Academic Performance Benchmark"
+    table_name: "STUDENT_ACADEMIC_METRICS"
+    description: "Student course hours, attendance, assignments, and exam performance."
+    schema_description: |
+      Table: STUDENT_ACADEMIC_METRICS
+      Columns:
+      - student_id (VARCHAR): Unique student identifier (e.g. 'STU_101')
+      - department (VARCHAR): Academic department ('Computer Science', 'Data Science', 'Electrical Eng', 'Mechanical Eng')
+      - study_hours_weekly (FLOAT): Weekly self-study hours
+      - attendance_pct (FLOAT): Class attendance percentage (0 to 100)
+      - assignments_completed (INT): Number of submitted assignments (out of 10)
+      - exam_score (FLOAT): Final exam score (out of 100)
+      - grade (VARCHAR): Letter grade ('A+', 'A', 'B+', 'B', 'C', 'D', 'F')
