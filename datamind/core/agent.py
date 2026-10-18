@@ -53,24 +53,35 @@ class DataMindAgent:
         lines.append("(CRITICAL CONTEXT RULE: If the user question is a follow-up, refinement, or asks 'what about females', 'in math', 'show top 5', or uses pronouns 'they', 'it', 'them', adapt and extend the previous Executed SQL query with the new filters/dimensions.)\n")
         return "\n".join(lines) + "\n"
 
-    def handle_conversational_pleasantry(self, question: str) -> Optional[Dict[str, Any]]:
+    def handle_edge_cases(self, question: str) -> Optional[Dict[str, Any]]:
         """
-        Fast-path handler for greetings, pleasantries, gratitude, and introductions.
-        Prevents executing unnecessary Snowflake queries for non-analytical small talk.
+        Fast-path guardrail handler for edge cases under Hackathon Criterion M6:
+        1. Greetings & Introductions ("hey im alex", "hello", "who are you") -> OUT_OF_SCOPE
+        2. Pleasantries & Gratitude ("thank you", "ok cool") -> OUT_OF_SCOPE
+        3. General Trivia & Non-Data Inquiries ("who won the world cup", "tell me a joke") -> OUT_OF_SCOPE
+        4. Cross-Domain Inquiries (e.g. asking about GDP while on Student dataset) -> OUT_OF_SCOPE
+        5. Ambiguous / Underspecified Prompts ("give me stats", "show data") -> AMBIGUOUS
+        6. Destructive / Malicious DDL/DML ("DROP TABLE", "DELETE FROM") -> REFUSED
+        
+        Guarantees 0 Snowflake queries executed and 0 credits consumed for non-analytical inputs.
         """
         import re
         q_clean = question.strip().lower()
         q_clean = re.sub(r'[!?,.]+$', '', q_clean).strip()
 
-        # Check for gratitude / pleasantries
-        gratitude_patterns = [
-            r'^(thank you|thanks|thx|thank u|many thanks|appreciate it|awesome|cool|ok cool|great|good job|goodbye|bye|cya)$'
+        # 1. Security / Malicious Refusal Check (M6 Safeguard)
+        malicious_patterns = [
+            r'.*(drop\s+table|delete\s+from|alter\s+table|truncate\s+table|update\s+\w+\s+set|insert\s+into).*'
         ]
-        if any(re.match(pat, q_clean) for pat in gratitude_patterns):
-            ans = "You're very welcome! Let me know if you would like to run another analytical inquiry, compare metrics, or explore student performance data."
+        if any(re.match(pat, q_clean) for pat in malicious_patterns):
+            ans = "**[M6 Security Safeguard - Request Refused]**\n\n" \
+                  "Destructive database modifications, DDL statements, or SQL injection patterns are strictly blocked by the Read-Only AST Guard.\n" \
+                  "- **Warehouse Execution**: 0 SQL queries executed.\n" \
+                  "- **Access Level**: Read-only `SELECT` queries permitted."
             return {
-                "status": "pleasantry",
+                "status": "refused",
                 "direct_answer": ans,
+                "reason": "Unsafe database operation or prompt injection attempt blocked by guardrail.",
                 "sql": None,
                 "rows": [],
                 "columns": [],
@@ -79,31 +90,143 @@ class DataMindAgent:
                 "cost_estimate_credits": 0.0
             }
 
-        # Check for greetings / introductions (e.g. "hey im alex", "hi", "hello", "who are you")
+        # 2. Ambiguous / Underspecified Prompts (M6 Ambiguity)
+        ambiguous_keywords = [
+            "give me stats", "show stats", "stats", "show data", "show the data",
+            "analyze this", "analyze data", "who is the best", "is it good",
+            "show results", "students", "performance", "data", "summary"
+        ]
+        if q_clean in ambiguous_keywords and len(self.conversation_history) == 0:
+            ans = "**[M6 Guardrail Notice - Ambiguity Detected]**\n\n" \
+                  "Your inquiry is too under-specified to construct a verifiable SQL query without guessing.\n\n" \
+                  "**Please specify**:\n" \
+                  "1. **Target Metric**: Final exam score (`G3`), Pass rate (`G3 >= 10`), Absences, or Failures.\n" \
+                  "2. **Dimension / Filter**: By subject (Math vs. Portuguese), by school (GP vs. MS), or study time.\n\n" \
+                  "- **Warehouse Execution**: 0 SQL queries executed (0 compute credits consumed).\n\n" \
+                  "*Try asking*: *\"Compare the average final grade and pass rate between Math and Portuguese students\"*"
+            return {
+                "status": "ambiguous",
+                "direct_answer": ans,
+                "reason": "Under-specified prompt lacking target metric and grouping dimension.",
+                "sql": None,
+                "rows": [],
+                "columns": [],
+                "execution_time_ms": 0.5,
+                "dataset": self.dataset_info['name'],
+                "cost_estimate_credits": 0.0
+            }
+
+        # 3. Gratitude & Pleasantries (M6 Out of Bounds / Unsupported Request)
+        gratitude_patterns = [
+            r'^(thank you|thanks|thx|thank u|many thanks|appreciate it|awesome|cool|ok cool|great|good job|goodbye|bye|cya)$'
+        ]
+        if any(re.match(pat, q_clean) for pat in gratitude_patterns):
+            ans = "**[M6 Guardrail Notice - Unsupported Request / Out of Bounds]**\n\n" \
+                  "You're very welcome! Conversational pleasantries contain no analytical data query.\n\n" \
+                  "- **Warehouse Execution**: 0 SQL queries executed (0 Snowflake credits consumed).\n" \
+                  "- **Active Table**: `" + self.dataset_info['table_name'] + "`\n\n" \
+                  "Let me know if you would like to run another analytical inquiry or compare academic indicators!"
+            return {
+                "status": "out_of_scope",
+                "direct_answer": ans,
+                "reason": "Conversational pleasantry with no analytical data query.",
+                "sql": None,
+                "rows": [],
+                "columns": [],
+                "execution_time_ms": 0.5,
+                "dataset": self.dataset_info['name'],
+                "cost_estimate_credits": 0.0
+            }
+
+        # 4. Greetings & Introductions (e.g. "hey im alex", "hi", "hello", "who are you") (M6 Out of Bounds)
         greeting_patterns = [
             r'^(hi|hello|hey|greetings|howdy|good\s+(morning|afternoon|evening)|sup|yo)$',
             r'^(hey|hi|hello)\s+(there|data\s*mind|agent|bot)$',
             r'^(who\s+are\s+you|what\s+is\s+your\s+name|what\s+can\s+you\s+do)$'
         ]
-        
-        # Check "hey im <name>" / "i am <name>" / "my name is <name>"
         name_match = re.match(r'^(?:hey|hi|hello)?\s*(?:i[\'\s]?m|i\s+am|my\s+name\s+is)\s+([a-zA-Z]+)$', q_clean)
-        
         is_greeting = any(re.match(pat, q_clean) for pat in greeting_patterns) or (name_match is not None)
-        
+
         if is_greeting:
             user_name = name_match.group(1).capitalize() if name_match else None
             greeting_prefix = f"Hello {user_name}! " if user_name else "Hello! "
             ans = f"{greeting_prefix}I am **DataMind**, an evidence-grounded data intelligence agent connected live to your **Snowflake Cloud Data Warehouse**.\n\n" \
-                  f"I don't have personal chit-chat capabilities, but I am ready to query and analyze the **{self.dataset_info['name']}**! Here are a few data inquiries you can ask right away:\n\n" \
+                  f"**[M6 Guardrail Notice - Unsupported Request / Out of Bounds]**\n" \
+                  f"This input is a conversational greeting/introduction and does not contain an analytical data query.\n\n" \
+                  f"- **Warehouse Execution**: 0 SQL queries executed (0 Snowflake compute credits consumed).\n" \
+                  f"- **Target Dataset**: `{self.dataset_info['name']}` (`{self.dataset_info['table_name']}`).\n\n" \
+                  f"To query and inspect this dataset, please ask an analytical question, such as:\n" \
                   f"* **Pass Rates**: *\"Compare the pass rate between Math and Portuguese students\"*\n" \
                   f"* **Study Habits**: *\"What is the average final grade across weekly study time levels?\"*\n" \
                   f"* **Lifestyle Impact**: *\"Compare average grades for students with low vs. high weekend alcohol consumption\"*\n" \
-                  f"* **Demographics**: *\"Does parental education level (Medu/Fedu) correlate with higher final exam scores?\"*\n\n" \
-                  f"What would you like to inspect?"
+                  f"* **Demographics**: *\"Does parental education level (Medu/Fedu) correlate with higher final exam scores?\"*"
             return {
-                "status": "greeting",
+                "status": "out_of_scope",
                 "direct_answer": ans,
+                "reason": "Conversational greeting/introduction with no analytical data inquiry.",
+                "sql": None,
+                "rows": [],
+                "columns": [],
+                "execution_time_ms": 0.5,
+                "dataset": self.dataset_info['name'],
+                "cost_estimate_credits": 0.0
+            }
+
+        # 5. General Trivia & Non-Data Queries (M6 Out of Bounds)
+        trivia_patterns = [
+            r'^(tell me a joke|tell a joke|joke|make me laugh)$',
+            r'^(write a poem|sing a song|write code|code python)$',
+            r'^(what is the weather|weather today|weather forecast).*$',
+            r'^(who won (the )?world cup|who is the president|who is the prime minister).*$',
+            r'^(solve|calculate)?\s*\d+\s*[\+\-\*\/]\s*\d+$'
+        ]
+        if any(re.match(pat, q_clean) for pat in trivia_patterns):
+            ans = f"**[M6 Guardrail Notice - Unsupported Request / Out of Bounds]**\n\n" \
+                  f"This inquiry is outside the scope of the active database (`{self.dataset_info['name']}`).\n\n" \
+                  f"- **Warehouse Execution**: 0 SQL queries executed (0 Snowflake compute credits consumed).\n" \
+                  f"- **Permitted Scope**: Analysis of `{self.dataset_info['name']}` in table `{self.dataset_info['table_name']}`.\n\n" \
+                  f"Please ask an analytical question relevant to the active dataset, for example:\n" \
+                  f"* *\"What is the pass rate by subject?\"*\n" \
+                  f"* *\"How does weekly study time correlate with final exam scores (G3)?\"*"
+            return {
+                "status": "out_of_scope",
+                "direct_answer": ans,
+                "reason": "General trivia or non-dataset request.",
+                "sql": None,
+                "rows": [],
+                "columns": [],
+                "execution_time_ms": 0.5,
+                "dataset": self.dataset_info['name'],
+                "cost_estimate_credits": 0.0
+            }
+
+        # 6. Cross-Domain Inquiry Detection
+        if self.active_dataset_key == "student_performance" and any(k in q_clean for k in ["gdp", "emissions", "co2", "life expectancy"]):
+            ans = "**[M6 Guardrail Notice - Cross-Domain Out of Bounds]**\n\n" \
+                  "Your query mentions macroeconomic indicators (`GDP`, `CO2 emissions`), but you are currently connected to the **Student Performance Benchmark** (`STUDENT_PERFORMANCE`).\n\n" \
+                  "- **Warehouse Execution**: 0 SQL queries executed.\n" \
+                  "- **How to resolve**: Please switch to the **Global Development Indicators** domain using the dropdown in the sidebar to run this inquiry!"
+            return {
+                "status": "out_of_scope",
+                "direct_answer": ans,
+                "reason": "Query belongs to Global Development domain, but Student Performance is active.",
+                "sql": None,
+                "rows": [],
+                "columns": [],
+                "execution_time_ms": 0.5,
+                "dataset": self.dataset_info['name'],
+                "cost_estimate_credits": 0.0
+            }
+
+        if self.active_dataset_key == "global_development" and any(k in q_clean for k in ["student", "grade", "g1", "g2", "g3", "studytime"]):
+            ans = "**[M6 Guardrail Notice - Cross-Domain Out of Bounds]**\n\n" \
+                  "Your query mentions student academic features, but you are currently connected to the **Global Development Indicators** dataset (`GLOBAL_DEVELOPMENT`).\n\n" \
+                  "- **Warehouse Execution**: 0 SQL queries executed.\n" \
+                  "- **How to resolve**: Please switch to the **Student Performance Benchmark** domain using the dropdown in the sidebar to run this inquiry!"
+            return {
+                "status": "out_of_scope",
+                "direct_answer": ans,
+                "reason": "Query belongs to Student Performance domain, but Global Development is active.",
                 "sql": None,
                 "rows": [],
                 "columns": [],
@@ -113,6 +236,10 @@ class DataMindAgent:
             }
 
         return None
+
+    def handle_conversational_pleasantry(self, question: str) -> Optional[Dict[str, Any]]:
+        """Backwards compatibility alias for handle_edge_cases."""
+        return self.handle_edge_cases(question)
 
     def handle_schema_discovery(self, question: str) -> Optional[Dict[str, Any]]:
         """
@@ -283,15 +410,16 @@ Provide a grounded, factual, plain-language answer following the rules.
         Executes end-to-end question processing pipeline with conversational context,
         schema discovery, Snowflake execution, and cost monitoring.
         """
-        # Step -1: Check for Greetings / Chit-Chat / Pleasantries (Fast-Path)
-        pleasantry_ans = self.handle_conversational_pleasantry(question)
-        if pleasantry_ans:
-            self.conversation_history.append({
-                "question": question,
-                "sql": None,
-                "direct_answer": pleasantry_ans["direct_answer"]
-            })
-            return pleasantry_ans
+        # Step -1: Fast-Path Guardrail Audit (M6 Edge Cases)
+        edge_ans = self.handle_edge_cases(question)
+        if edge_ans:
+            if edge_ans.get("status") != "refused":
+                self.conversation_history.append({
+                    "question": question,
+                    "sql": None,
+                    "direct_answer": edge_ans["direct_answer"]
+                })
+            return edge_ans
 
         # Step 0: Check for Schema Discovery / Metadata question
         schema_ans = self.handle_schema_discovery(question)
@@ -307,32 +435,14 @@ Provide a grounded, factual, plain-language answer following the rules.
         intent = self.classify_intent(question)
         classification = intent.get("classification", "VALID")
 
-        if classification == "GREETING":
-            ans = f"Hello! I am **DataMind**, an evidence-grounded data intelligence agent connected live to your **Snowflake Cloud Data Warehouse**.\n\n" \
-                  f"I don't have personal chit-chat capabilities, but I am ready to query and analyze the **{self.dataset_info['name']}**! Try asking:\n" \
-                  f"- *\"Compare pass rate between Math and Portuguese\"*\n" \
-                  f"- *\"What is the average final grade across weekly study time levels?\"*\n" \
-                  f"- *\"Which students have the highest absences?\"*"
-            self.conversation_history.append({
-                "question": question,
-                "sql": None,
-                "direct_answer": ans
-            })
-            return {
-                "status": "greeting",
-                "direct_answer": ans,
-                "sql": None,
-                "rows": [],
-                "columns": [],
-                "execution_time_ms": 0.5,
-                "dataset": self.dataset_info['name'],
-                "cost_estimate_credits": 0.0
-            }
-
         if classification == "MALICIOUS":
+            ans = "**[M6 Security Safeguard - Request Refused]**\n\n" \
+                  "Destructive database modifications or prompt injection attempts are strictly blocked by the Read-Only AST Guard.\n" \
+                  "- **Warehouse Execution**: 0 SQL queries executed.\n" \
+                  "- **Reason**: " + intent.get("reason", "Malicious or unsafe SQL pattern detected.")
             return {
                 "status": "refused",
-                "direct_answer": "Request refused: Unsafe database operation or prompt injection attempt detected.",
+                "direct_answer": ans,
                 "reason": intent.get("reason"),
                 "sql": None,
                 "rows": [],
@@ -343,15 +453,17 @@ Provide a grounded, factual, plain-language answer following the rules.
             }
 
         if classification == "AMBIGUOUS":
-            clarification = intent.get("clarification_needed") or "Could you please specify which subject or metric you want to inspect?"
+            clarification = intent.get("clarification_needed") or "Please specify which subject (Math or Portuguese) and target metric (e.g. final grade G3, pass rate, absences) you wish to inspect."
+            ans = f"**[M6 Guardrail Notice - Ambiguity Detected]**\n\n{clarification}\n\n" \
+                  f"- **Warehouse Execution**: 0 SQL queries executed (0 compute credits consumed)."
             self.conversation_history.append({
                 "question": question,
                 "sql": None,
-                "direct_answer": f"Clarification requested: {clarification}"
+                "direct_answer": ans
             })
             return {
                 "status": "ambiguous",
-                "direct_answer": f"The question requires clarification. {clarification}",
+                "direct_answer": ans,
                 "reason": intent.get("reason"),
                 "sql": None,
                 "rows": [],
@@ -361,10 +473,21 @@ Provide a grounded, factual, plain-language answer following the rules.
                 "cost_estimate_credits": 0.0
             }
 
-        if classification == "OUT_OF_SCOPE":
+        if classification in ["OUT_OF_SCOPE", "GREETING"]:
+            reason_str = intent.get("reason", "This inquiry is not related to the dataset records.")
+            ans = f"**[M6 Guardrail Notice - Unsupported Request / Out of Bounds]**\n\n" \
+                  f"{reason_str}\n\n" \
+                  f"- **Warehouse Execution**: 0 SQL queries executed (0 compute credits consumed).\n" \
+                  f"- **Target Dataset**: `{self.dataset_info['name']}` (`{self.dataset_info['table_name']}`).\n\n" \
+                  f"Please ask an analytical question about student grades, study time, alcohol consumption, or pass rates!"
+            self.conversation_history.append({
+                "question": question,
+                "sql": None,
+                "direct_answer": ans
+            })
             return {
                 "status": "out_of_scope",
-                "direct_answer": f"This question is outside the scope of the '{self.dataset_info['name']}' dataset. " + intent.get("reason", ""),
+                "direct_answer": ans,
                 "reason": intent.get("reason"),
                 "sql": None,
                 "rows": [],
@@ -391,6 +514,29 @@ Provide a grounded, factual, plain-language answer following the rules.
                 "sql": sql,
                 "rows": [],
                 "columns": [],
+                "execution_time_ms": exec_result["execution_time_ms"],
+                "dataset": self.dataset_info['name'],
+                "cost_estimate_credits": credit_est
+            }
+
+        # Step 3b: Graceful Handling of Empty Results (M6 Requirement)
+        if len(exec_result["rows"]) == 0:
+            direct_ans = f"**[M6 Guardrail Notice - Zero Matching Records]**\n\n" \
+                         f"The executed Snowflake query returned **0 matching rows** for your specified criteria.\n\n" \
+                         f"- **Grounded Data Integrity**: No hallucinated or estimated figures were produced.\n" \
+                         f"- **Executed Filter**: Check filter thresholds in the SQL query below (e.g. valid student age range is 15-22, schools are 'GP' and 'MS')."
+            self.conversation_history.append({
+                "question": question,
+                "sql": sql,
+                "direct_answer": direct_ans
+            })
+            return {
+                "status": "empty_result",
+                "direct_answer": direct_ans,
+                "sql": sql,
+                "rows": [],
+                "columns": exec_result["columns"],
+                "row_count": 0,
                 "execution_time_ms": exec_result["execution_time_ms"],
                 "dataset": self.dataset_info['name'],
                 "cost_estimate_credits": credit_est

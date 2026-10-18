@@ -146,6 +146,9 @@ Run the test suite to verify grounded claims, mathematical derivations, and mult
 # Test multi-turn conversational follow-up and student query derivations
 python tests/test_student_queries.py
 
+# Test M6 edge cases (out-of-bounds, greetings, ambiguity, zero matching rows, refusals)
+python tests/test_edge_cases.py
+
 # Test intent triage (valid vs ambiguous vs malicious)
 python tests/test_triage.py
 

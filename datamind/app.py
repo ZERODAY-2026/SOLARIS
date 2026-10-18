@@ -329,7 +329,14 @@ for chat in chat_history:
     with st.chat_message(chat["role"]):
         if chat.get("context_pill"):
             st.markdown(chat["context_pill"], unsafe_allow_html=True)
-        st.markdown(chat["content"])
+        if chat.get("guardrail_box") == "warning":
+            st.warning(chat["content"])
+        elif chat.get("guardrail_box") == "error":
+            st.error(chat["content"])
+        elif chat.get("guardrail_box") == "info":
+            st.info(chat["content"])
+        else:
+            st.markdown(chat["content"])
         if "df" in chat and chat["df"] is not None and not chat["df"].empty:
             render_auto_chart(chat["df"])
         if "sql" in chat and chat["sql"]:
@@ -444,18 +451,21 @@ if query_to_run:
                 "context_pill": context_pill
             })
 
-        elif status in ["greeting", "pleasantry"]:
-            st.markdown(result["direct_answer"])
-            chat_history.append({"role": "assistant", "content": result["direct_answer"]})
         elif status == "ambiguous":
             st.warning(f"**⚠ Ambiguity Detected (M6 Guardrail):**\n\n{result['direct_answer']}")
-            chat_history.append({"role": "assistant", "content": result["direct_answer"]})
+            chat_history.append({"role": "assistant", "content": result["direct_answer"], "guardrail_box": "warning"})
+        elif status == "empty_result":
+            st.warning(f"**∅ Empty Result / Zero Matching Records (M6 Guardrail):**\n\n{result['direct_answer']}")
+            if result.get("sql"):
+                with st.expander("⚲ View Inspected SQL Query"):
+                    st.code(result["sql"], language="sql")
+            chat_history.append({"role": "assistant", "content": result["direct_answer"], "sql": result.get("sql"), "guardrail_box": "warning"})
         elif status == "refused":
-            st.error(f"**⛔ Security Guardrail Refusal (M6):**\n\n{result['direct_answer']}")
-            chat_history.append({"role": "assistant", "content": result["direct_answer"]})
-        elif status == "out_of_scope":
-            st.info(f"**ℹ Dataset Boundary Limitation (M6):**\n\n{result['direct_answer']}")
-            chat_history.append({"role": "assistant", "content": result["direct_answer"]})
+            st.error(f"**⛔ Security Guardrail Refusal (M6 Safeguard):**\n\n{result['direct_answer']}")
+            chat_history.append({"role": "assistant", "content": result["direct_answer"], "guardrail_box": "error"})
+        elif status in ["out_of_scope", "greeting", "pleasantry"]:
+            st.info(f"**ℹ Out of Bounds / Unsupported Request (M6 Guardrail):**\n\n{result['direct_answer']}")
+            chat_history.append({"role": "assistant", "content": result["direct_answer"], "guardrail_box": "info"})
         else:
             st.error(f"**✕ Execution Error:**\n\n{result['direct_answer']}")
-            chat_history.append({"role": "assistant", "content": result["direct_answer"]})
+            chat_history.append({"role": "assistant", "content": result["direct_answer"], "guardrail_box": "error"})

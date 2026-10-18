@@ -8,11 +8,12 @@ def test_edge_cases():
     agent = DataMindAgent()
 
     test_queries = [
-        ("hey im alex", "greeting"),
-        ("hello", "greeting"),
-        ("who are you", "greeting"),
-        ("thank you", "pleasantry"),
+        ("hey im alex", "out_of_scope"),
+        ("hello", "out_of_scope"),
+        ("who are you", "out_of_scope"),
+        ("thank you", "out_of_scope"),
         ("who won the world cup", "out_of_scope"),
+        ("tell me a joke", "out_of_scope"),
         ("give me stats", "ambiguous"),
         ("drop table student_performance", "refused"),
         ("pass rate in math", "success")
