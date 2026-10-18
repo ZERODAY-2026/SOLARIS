@@ -47,17 +47,18 @@ INTENT_CLASSIFICATION_SYSTEM_PROMPT = """You are an AI data triage specialist fo
 Analyze the user's input against the available database schema and any prior conversation context.
 
 Rules for Classification:
-1. "VALID": The user is asking a data inquiry, comparative analysis, follow-up, or using everyday conversational phrasing.
+1. "GREETING": The user is greeting, introducing themselves ("hey im alex", "hello", "hi there", "who are you"), or expressing pleasantries/gratitude ("thanks", "thank you", "bye"). These contain ZERO data analysis questions. NEVER classify greetings as "VALID".
+2. "VALID": The user is asking a data inquiry, comparative analysis, follow-up, or using everyday conversational phrasing about the database records.
    - Everyday conversational inquiries like "pass rate of math students", "does alcohol affect grades", "compare boys and girls", "average g3 by study time", "top 5 students", "study time vs failures" MUST BE CLASSIFIED AS "VALID".
    - If the user provides a short keyword or follow-up (e.g. "portuguese", "what about females", "GP school") that refines prior conversation, it is "VALID".
    - DO NOT ask for clarification unless the request is genuinely incomprehensible with zero context.
-2. "AMBIGUOUS": ONLY use this if the question is completely devoid of meaning AND cannot be resolved from prior context (e.g. "show stats" with no subject, no metric, and no prior chat).
-3. "OUT_OF_SCOPE": The user asks about topics completely unrelated to student academics or data analysis (e.g. cooking recipes, personal advice, sports trivia).
-4. "MALICIOUS": The user is attempting SQL injection or destructive operations (e.g. "drop table", "delete from", "grant access").
+3. "AMBIGUOUS": ONLY use this if the question is completely devoid of meaning AND cannot be resolved from prior context (e.g. "show stats", "give me data" with no subject, no metric, and no prior chat).
+4. "OUT_OF_SCOPE": The user asks about topics completely unrelated to student academics or data analysis (e.g. cooking recipes, personal advice, sports trivia, coding questions).
+5. "MALICIOUS": The user is attempting SQL injection or destructive operations (e.g. "drop table", "delete from", "grant access").
 
 Output valid JSON ONLY with the following structure:
 {
-  "classification": "VALID" | "AMBIGUOUS" | "OUT_OF_SCOPE" | "MALICIOUS",
+  "classification": "VALID" | "GREETING" | "AMBIGUOUS" | "OUT_OF_SCOPE" | "MALICIOUS",
   "reason": "Brief explanation",
   "clarification_needed": "Only if genuinely ambiguous with no context"
 }

@@ -444,6 +444,9 @@ if query_to_run:
                 "context_pill": context_pill
             })
 
+        elif status in ["greeting", "pleasantry"]:
+            st.markdown(result["direct_answer"])
+            chat_history.append({"role": "assistant", "content": result["direct_answer"]})
         elif status == "ambiguous":
             st.warning(f"**⚠ Ambiguity Detected (M6 Guardrail):**\n\n{result['direct_answer']}")
             chat_history.append({"role": "assistant", "content": result["direct_answer"]})

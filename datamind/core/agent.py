@@ -53,6 +53,67 @@ class DataMindAgent:
         lines.append("(CRITICAL CONTEXT RULE: If the user question is a follow-up, refinement, or asks 'what about females', 'in math', 'show top 5', or uses pronouns 'they', 'it', 'them', adapt and extend the previous Executed SQL query with the new filters/dimensions.)\n")
         return "\n".join(lines) + "\n"
 
+    def handle_conversational_pleasantry(self, question: str) -> Optional[Dict[str, Any]]:
+        """
+        Fast-path handler for greetings, pleasantries, gratitude, and introductions.
+        Prevents executing unnecessary Snowflake queries for non-analytical small talk.
+        """
+        import re
+        q_clean = question.strip().lower()
+        q_clean = re.sub(r'[!?,.]+$', '', q_clean).strip()
+
+        # Check for gratitude / pleasantries
+        gratitude_patterns = [
+            r'^(thank you|thanks|thx|thank u|many thanks|appreciate it|awesome|cool|ok cool|great|good job|goodbye|bye|cya)$'
+        ]
+        if any(re.match(pat, q_clean) for pat in gratitude_patterns):
+            ans = "You're very welcome! Let me know if you would like to run another analytical inquiry, compare metrics, or explore student performance data."
+            return {
+                "status": "pleasantry",
+                "direct_answer": ans,
+                "sql": None,
+                "rows": [],
+                "columns": [],
+                "execution_time_ms": 0.5,
+                "dataset": self.dataset_info['name'],
+                "cost_estimate_credits": 0.0
+            }
+
+        # Check for greetings / introductions (e.g. "hey im alex", "hi", "hello", "who are you")
+        greeting_patterns = [
+            r'^(hi|hello|hey|greetings|howdy|good\s+(morning|afternoon|evening)|sup|yo)$',
+            r'^(hey|hi|hello)\s+(there|data\s*mind|agent|bot)$',
+            r'^(who\s+are\s+you|what\s+is\s+your\s+name|what\s+can\s+you\s+do)$'
+        ]
+        
+        # Check "hey im <name>" / "i am <name>" / "my name is <name>"
+        name_match = re.match(r'^(?:hey|hi|hello)?\s*(?:i[\'\s]?m|i\s+am|my\s+name\s+is)\s+([a-zA-Z]+)$', q_clean)
+        
+        is_greeting = any(re.match(pat, q_clean) for pat in greeting_patterns) or (name_match is not None)
+        
+        if is_greeting:
+            user_name = name_match.group(1).capitalize() if name_match else None
+            greeting_prefix = f"Hello {user_name}! " if user_name else "Hello! "
+            ans = f"{greeting_prefix}I am **DataMind**, an evidence-grounded data intelligence agent connected live to your **Snowflake Cloud Data Warehouse**.\n\n" \
+                  f"I don't have personal chit-chat capabilities, but I am ready to query and analyze the **{self.dataset_info['name']}**! Here are a few data inquiries you can ask right away:\n\n" \
+                  f"* **Pass Rates**: *\"Compare the pass rate between Math and Portuguese students\"*\n" \
+                  f"* **Study Habits**: *\"What is the average final grade across weekly study time levels?\"*\n" \
+                  f"* **Lifestyle Impact**: *\"Compare average grades for students with low vs. high weekend alcohol consumption\"*\n" \
+                  f"* **Demographics**: *\"Does parental education level (Medu/Fedu) correlate with higher final exam scores?\"*\n\n" \
+                  f"What would you like to inspect?"
+            return {
+                "status": "greeting",
+                "direct_answer": ans,
+                "sql": None,
+                "rows": [],
+                "columns": [],
+                "execution_time_ms": 0.5,
+                "dataset": self.dataset_info['name'],
+                "cost_estimate_credits": 0.0
+            }
+
+        return None
+
     def handle_schema_discovery(self, question: str) -> Optional[Dict[str, Any]]:
         """
         Detects meta-questions asking about available tables, metrics, subjects, features, or columns.
@@ -222,6 +283,16 @@ Provide a grounded, factual, plain-language answer following the rules.
         Executes end-to-end question processing pipeline with conversational context,
         schema discovery, Snowflake execution, and cost monitoring.
         """
+        # Step -1: Check for Greetings / Chit-Chat / Pleasantries (Fast-Path)
+        pleasantry_ans = self.handle_conversational_pleasantry(question)
+        if pleasantry_ans:
+            self.conversation_history.append({
+                "question": question,
+                "sql": None,
+                "direct_answer": pleasantry_ans["direct_answer"]
+            })
+            return pleasantry_ans
+
         # Step 0: Check for Schema Discovery / Metadata question
         schema_ans = self.handle_schema_discovery(question)
         if schema_ans:
@@ -235,6 +306,28 @@ Provide a grounded, factual, plain-language answer following the rules.
         # Step 1: Intent & Ambiguity Check (M6)
         intent = self.classify_intent(question)
         classification = intent.get("classification", "VALID")
+
+        if classification == "GREETING":
+            ans = f"Hello! I am **DataMind**, an evidence-grounded data intelligence agent connected live to your **Snowflake Cloud Data Warehouse**.\n\n" \
+                  f"I don't have personal chit-chat capabilities, but I am ready to query and analyze the **{self.dataset_info['name']}**! Try asking:\n" \
+                  f"- *\"Compare pass rate between Math and Portuguese\"*\n" \
+                  f"- *\"What is the average final grade across weekly study time levels?\"*\n" \
+                  f"- *\"Which students have the highest absences?\"*"
+            self.conversation_history.append({
+                "question": question,
+                "sql": None,
+                "direct_answer": ans
+            })
+            return {
+                "status": "greeting",
+                "direct_answer": ans,
+                "sql": None,
+                "rows": [],
+                "columns": [],
+                "execution_time_ms": 0.5,
+                "dataset": self.dataset_info['name'],
+                "cost_estimate_credits": 0.0
+            }
 
         if classification == "MALICIOUS":
             return {
