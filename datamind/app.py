@@ -178,6 +178,9 @@ with st.sidebar:
     )
     selected_key = dataset_keys[selected_idx]
 
+    if "agents" not in st.session_state:
+        st.session_state.agents = {}
+
     if selected_key not in st.session_state.agents:
         agent_inst = DataMindAgent()
         agent_inst.set_active_dataset(selected_key)
@@ -186,7 +189,10 @@ with st.sidebar:
     agent = st.session_state.agents[selected_key]
 
     if "domain_histories" not in st.session_state:
-        st.session_state.domain_histories = {k: [] for k in dataset_keys}
+        st.session_state.domain_histories = {}
+
+    if selected_key not in st.session_state.domain_histories:
+        st.session_state.domain_histories[selected_key] = []
 
     # Active chat history for current selected dataset
     chat_history = st.session_state.domain_histories[selected_key]
@@ -231,8 +237,49 @@ with st.sidebar:
     - ◈ **Model**: Google Gemma 4 (26B MoE)
     """)
 
+    # ── Automated Document / Dataset Ingestor (PDF / CSV / Excel) ──
+    st.markdown("---")
+    with st.expander("📤 Upload Custom Dataset (CSV / PDF / Excel)"):
+        st.caption("Upload a CSV, Excel, or tabular PDF. Gemma 4 automatically infers schema, generates DDL, creates the Snowflake table, and adds it as an active domain.")
+        uploaded_file = st.file_uploader(
+            "Choose file",
+            type=["csv", "xlsx", "xls", "pdf"],
+            key="dataset_file_uploader",
+            label_visibility="collapsed"
+        )
+        custom_name = st.text_input("Dataset Display Name (optional):", placeholder="e.g. Q3 Sales Performance")
+        if uploaded_file is not None:
+            if st.button("⚡ Ingest into Snowflake via Gemma 4", use_container_width=True):
+                with st.spinner("Parsing file, inferring schema via Gemma 4, and deploying to Snowflake..."):
+                    try:
+                        from datamind.core.auto_ingest import DatasetAutoIngestor
+                        ingestor = DatasetAutoIngestor()
+                        df_up, tbl_up = ingestor.parse_uploaded_file_to_df(uploaded_file)
+                        disp_name = custom_name.strip() if custom_name else f"Uploaded {uploaded_file.name}"
+                        schema_meta = ingestor.infer_snowflake_schema_and_ddl(df_up, tbl_up, disp_name)
+                        new_domain_key = ingestor.deploy_to_snowflake_and_register(df_up, schema_meta)
+                        if "domain_histories" in st.session_state:
+                            st.session_state.domain_histories[new_domain_key] = []
+                        if "agents" in st.session_state:
+                            new_agent = DataMindAgent()
+                            new_agent.set_active_dataset(new_domain_key)
+                            st.session_state.agents[new_domain_key] = new_agent
+                        st.success(f"✓ Created table `{tbl_up}` on Snowflake with {len(df_up)} records!")
+                        st.info(f"Registered domain **{disp_name}**. Refreshing workspace...")
+                        import time
+                        time.sleep(1.2)
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(f"Ingestion failed: {exc}")
+
 # Hero Section
-record_badge = "◉ 1,044 Verified Student Records (Math & Portuguese)" if selected_key == "student_performance" else "◉ 164 Sovereign Economies Loaded"
+if selected_key == "student_performance":
+    record_badge = "◉ 1,044 Verified Student Records (Math & Portuguese)"
+elif selected_key == "global_development":
+    record_badge = "◉ 164 Sovereign Economies Loaded"
+else:
+    record_badge = f"◉ Custom Domain: {agent.dataset_info.get('table_name', 'TABLE')}"
+
 st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-title">❄ DataMind Analytics Engine</div>
@@ -263,7 +310,7 @@ if selected_key == "global_development":
         sample_query = "Compare the GDP per capita and CO2 emissions of Argentina and Spain in 2022"
     if col4.button("⚲ Explore Available Countries", use_container_width=True):
         sample_query = "Which countries are available in the dataset?"
-else:
+elif selected_key == "student_performance":
     if col1.button("◆ Pass Rate: Math vs Portuguese", use_container_width=True):
         sample_query = "Compare the pass rate (G3 >= 10) and average final grade between Math and Portuguese students"
     if col2.button("⏱ Study Time Impact on Final Grade", use_container_width=True):
@@ -272,6 +319,16 @@ else:
         sample_query = "Compare average final grades (G3) for students with low weekend alcohol (Walc <= 2) versus high weekend alcohol (Walc >= 4)"
     if col4.button("▲ Parental Education Effect", use_container_width=True):
         sample_query = "How does mother education level (Medu) affect students average final grade (G3) and pass rate?"
+else:
+    tbl_name = agent.dataset_info.get('table_name', 'TABLE')
+    if col1.button("■ Sample First 5 Records", use_container_width=True):
+        sample_query = f"Show the first 5 records from {tbl_name}"
+    if col2.button("▲ Total Record Count", use_container_width=True):
+        sample_query = f"What is the total number of records in {tbl_name}?"
+    if col3.button("◉ Summary Aggregates", use_container_width=True):
+        sample_query = "Show summary statistics or key aggregates across the main numeric columns"
+    if col4.button("⚲ Available Schema & Columns", use_container_width=True):
+        sample_query = "What columns and data features are available in this table?"
 
 def render_auto_chart(df: pd.DataFrame):
     """
