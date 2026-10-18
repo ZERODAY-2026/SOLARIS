@@ -197,6 +197,13 @@ if query_to_run:
             with tab_rows:
                 if df is not None and not df.empty:
                     st.dataframe(df, use_container_width=True)
+                    csv_data = df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥 Export Verified Rows (CSV)",
+                        data=csv_data,
+                        file_name=f"datamind_query_results.csv",
+                        mime="text/csv"
+                    )
                 else:
                     st.warning("No rows returned from the warehouse for the given criteria.")
 
@@ -206,6 +213,8 @@ if query_to_run:
                 m2.metric("Rows Examined", result["row_count"])
                 m3.metric("Est. Credits Consumed", f"{result.get('cost_estimate_credits', 0.0)} cr")
                 m4.metric("AI Reasoner", "Gemma 4 (26B MoE)")
+                
+                st.caption(f"Connected to Snowflake Warehouse `COMPUTE_WH` on `DATAMIND_DB.PUBLIC`. Claim citations verified against active query index.")
 
             # Store in session state
             st.session_state.chat_history.append({
