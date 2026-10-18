@@ -1,5 +1,22 @@
-__pycache__/
-*.pyc
-*.pyo
+# Environment variables and secrets
 .env
+.env.*
+*.env
 .env.local
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Data cache / raw downloads
+data/raw/
+*.csv
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.pytest_cache/

@@ -1,243 +1,458 @@
-import os
-import sys
-from datetime import datetime
-
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import sys
+import os
 
+# Add root directory to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from datamind.core.agent import DataMindAgent
 
-st.set_page_config(page_title="DataMind · Intelligence Desk", page_icon="◈", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="DataMind · Enterprise Data Intelligence",
+    page_icon="❄",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Visual direction: editorial research desk rather than a conventional chatbot.
-st.markdown(r"""
+# Production-Grade Modern SaaS Theme Styling
+st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
-:root { --ink:#e9eee9; --muted:#8d9a92; --panel:#151c19; --line:#2a3730; --lime:#c7f36b; --mint:#8fe0bd; }
-html, body, [class*="css"] { font-family:'DM Sans',sans-serif; }
-.stApp { background: radial-gradient(ellipse at 80% 0%, #1a2a22 0%, #101613 42%, #0c100e 100%); color:var(--ink); }
-[data-testid="stHeader"] { background:transparent; }
-.block-container { padding-top:1.7rem; padding-bottom:3rem; max-width:1500px; }
-[data-testid="stSidebar"] { background:#111714; border-right:1px solid var(--line); }
-[data-testid="stSidebar"] .block-container { padding-top:1.5rem; }
-.eyebrow { color:var(--lime); text-transform:uppercase; letter-spacing:.19em; font:500 10px 'DM Mono',monospace; }
-.hero-title { font:800 clamp(2.2rem,4vw,4.1rem)/1.04 'Manrope',sans-serif; letter-spacing:-.065em; margin:.5rem 0 .7rem; color:#f0f4ef; }
-.hero-title span { color:var(--lime); }
-.hero-sub { color:#a1aea5; max-width:740px; font-size:15px; line-height:1.65; }
-.rule { height:1px; background:linear-gradient(90deg,var(--lime),#344239 42%,transparent); margin:1.4rem 0 1.5rem; }
-.kicker { font:500 10px 'DM Mono',monospace; color:#8d9a92; text-transform:uppercase; letter-spacing:.13em; }
-.stat-card { background:linear-gradient(145deg,#1a241e,#141a17); border:1px solid #2a3930; border-radius:13px; padding:15px 17px; min-height:88px; }
-.stat-label { font:500 10px 'DM Mono',monospace; color:#93a197; text-transform:uppercase; letter-spacing:.1em; }
-.stat-value { font:700 24px 'Manrope',sans-serif; color:#eff5ee; margin-top:6px; }
-.stat-note { font-size:11px; color:#8d9a92; margin-top:2px; }
-.section-title { font:700 17px 'Manrope',sans-serif; letter-spacing:-.025em; color:#edf3ed; }
-.prompt-card { background:#151d18; border:1px solid #2c3a31; padding:13px 15px; border-radius:12px; min-height:82px; }
-.prompt-tag { color:var(--lime); font:500 10px 'DM Mono',monospace; letter-spacing:.08em; }
-.prompt-copy { color:#dce5dd; font-size:13px; margin-top:6px; line-height:1.4; }
-.answer-panel { background:linear-gradient(135deg,#17231b,#151b18); border:1px solid #354b3a; border-left:3px solid var(--lime); border-radius:12px; padding:20px 22px; }
-.answer-label { color:var(--lime); font:500 10px 'DM Mono',monospace; text-transform:uppercase; letter-spacing:.14em; margin-bottom:8px; }
-div[data-testid="stChatMessage"] { background:#141b17; border:1px solid #27342c; border-radius:13px; padding:14px; }
-.stButton > button { border-radius:9px; border:1px solid #35453a; background:#19221c; color:#e5eee6; font-weight:600; transition:all .15s ease; }
-.stButton > button:hover { border-color:var(--lime); color:var(--lime); background:#202c23; }
-.stButton > button[kind="primary"] { background:var(--lime); color:#172015; border-color:var(--lime); }
-.stButton > button[kind="primary"]:hover { background:#d7ff8a; color:#172015; }
-.stTextInput input, .stTextArea textarea, [data-baseweb="select"] > div { background:#121915 !important; border-color:#344238 !important; color:#eaf0e9 !important; border-radius:9px !important; }
-.stTabs [data-baseweb="tab-list"] { gap:6px; border-bottom:1px solid #2b3930; }
-.stTabs [data-baseweb="tab"] { background:#151c18; border-radius:8px 8px 0 0; color:#a8b5ab; padding:10px 15px; }
-.stTabs [aria-selected="true"] { color:var(--lime) !important; border-bottom-color:var(--lime) !important; }
-[data-testid="stDataFrame"] { border:1px solid #2a3930; border-radius:10px; overflow:hidden; }
-.stAlert { border-radius:10px; }
-div[data-testid="stExpander"] { background:#141b17; border:1px solid #2b3930; border-radius:10px; }
-footer {visibility:hidden;}
-.small-note { color:#849188; font-size:11px; }
-code, .stCode { font-family:'DM Mono',monospace !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* Gradient Header Accent */
+    .hero-banner {
+        background: linear-gradient(135deg, rgba(20, 26, 40, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
+        border: 1px solid rgba(41, 181, 232, 0.25);
+        border-radius: 16px;
+        padding: 24px 30px;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+    
+    .hero-title {
+        font-size: 2.1rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #FFFFFF 0%, #29B5E8 50%, #4285F4 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 6px;
+    }
+    
+    .hero-subtitle {
+        color: #94A3B8;
+        font-size: 0.98rem;
+        font-weight: 400;
+        line-height: 1.5;
+    }
+
+    /* Status Badges */
+    .badge-container {
+        display: flex;
+        gap: 10px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(41, 181, 232, 0.1);
+        border: 1px solid rgba(41, 181, 232, 0.3);
+        color: #38BDF8;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .status-badge.gemma {
+        background: rgba(66, 133, 244, 0.1);
+        border-color: rgba(66, 133, 244, 0.3);
+        color: #8AB4F8;
+    }
+
+    .status-badge.guardrail {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #34D399;
+    }
+
+    /* Metric & KPI Cards */
+    .kpi-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+        margin: 18px 0;
+    }
+
+    .kpi-card {
+        background: #141B26;
+        border: 1px solid #232E3F;
+        border-radius: 12px;
+        padding: 16px 20px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .kpi-card:hover {
+        border-color: #29B5E8;
+        transform: translateY(-2px);
+    }
+
+    .kpi-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748B;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .kpi-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #F8FAFC;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Chat message enhancements */
+    .stChatMessage {
+        border-radius: 14px !important;
+        margin-bottom: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Streamlit tabs modern look */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        border-bottom: 1px solid #232E3F;
+        padding-bottom: 4px;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 0.88rem;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(41, 181, 232, 0.15) !important;
+        color: #38BDF8 !important;
+    }
+
+    /* Code Block Monospace Styling */
+    pre, code {
+        font-family: 'JetBrains Mono', monospace !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_resource
-def get_agent():
-    return DataMindAgent()
+# Session State Setup with Isolated Per-Dataset Agent Instances and Memory
+if "agents" not in st.session_state:
+    st.session_state.agents = {}
 
-agent = get_agent()
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-if "query_text" not in st.session_state:
-    st.session_state.query_text = ""
-if "last_result" not in st.session_state:
-    st.session_state.last_result = None
-
-# Sidebar: controls that affect actual query behavior.
+# Sidebar Configuration
 with st.sidebar:
-    st.markdown('<div class="eyebrow">◈ DATAMIND / WORKSPACE</div>', unsafe_allow_html=True)
-    st.markdown("## Intelligence desk")
-    st.caption("Live data · evidence-first answers")
-    st.divider()
-    dataset_keys = list(agent.config["datasets"].keys())
-    dataset_names = [agent.config["datasets"][k]["name"] for k in dataset_keys]
-    current_idx = dataset_keys.index(agent.active_dataset_key) if agent.active_dataset_key in dataset_keys else 0
-    selected_idx = st.selectbox("KNOWLEDGE DOMAIN", range(len(dataset_keys)), index=current_idx, format_func=lambda x: dataset_names[x])
+    st.image("https://upload.wikimedia.org/wikipedia/commons/f/ff/Snowflake_Logo.svg", width=140)
+    st.markdown("### **DataMind Control Center**")
+    st.caption("ZeroDay OSS Hacktoberfest 2026 · Problem Statement 1")
+
+    st.markdown("---")
+    st.markdown("##### ◎ Active Data Warehouse Domain")
+    
+    # Read config to get datasets
+    temp_agent = DataMindAgent()
+    dataset_keys = list(temp_agent.config["datasets"].keys())
+    dataset_names = [temp_agent.config["datasets"][k]["name"] for k in dataset_keys]
+    
+    selected_idx = st.selectbox(
+        "Select Active Knowledge Domain:",
+        range(len(dataset_keys)),
+        format_func=lambda x: dataset_names[x]
+    )
     selected_key = dataset_keys[selected_idx]
-    if agent.active_dataset_key != selected_key:
-        agent.set_active_dataset(selected_key)
-        agent.reset_conversation()
-        st.session_state.chat_history = []
-        st.session_state.last_result = None
-        st.rerun()
 
-    st.markdown("**Active source**")
-    st.code(agent.dataset_info["table_name"], language=None)
-    st.caption(agent.dataset_info.get("description", "Configured Snowflake dataset"))
-    st.divider()
-    st.markdown("**SESSION TOOLS**")
-    if st.button("＋ New analysis", use_container_width=True):
-        agent.reset_conversation()
-        st.session_state.chat_history = []
-        st.session_state.last_result = None
-        st.session_state.query_text = ""
-        st.rerun()
-    if st.session_state.chat_history:
-        options = list(range(len(st.session_state.chat_history)))
-        picked = st.selectbox("Recent questions", options, format_func=lambda i: st.session_state.chat_history[i].get("question", f"Analysis {i+1}")[:54])
-        if st.button("↺ Reuse selected question", use_container_width=True):
-            st.session_state.query_text = st.session_state.chat_history[picked].get("question", "")
-            st.rerun()
-    st.divider()
-    st.markdown("**TRUST & TRACEABILITY**")
-    st.markdown("<div class='small-note'>◉ Read-only SQL guardrails<br>◉ Row-grounded explanations<br>◉ Live Snowflake execution<br>◉ Inspectable query evidence</div>", unsafe_allow_html=True)
-    st.markdown("<br><div class='small-note'>DATA PLATFORM · SNOWFLAKE<br>REASONING LAYER · GEMMA VIA OPENROUTER</div>", unsafe_allow_html=True)
+    if selected_key not in st.session_state.agents:
+        agent_inst = DataMindAgent()
+        agent_inst.set_active_dataset(selected_key)
+        st.session_state.agents[selected_key] = agent_inst
 
-# Hero
-st.markdown('<div class="eyebrow">FIELD NOTES  /  ANALYTICS SYSTEM 01</div>', unsafe_allow_html=True)
-st.markdown('<div class="hero-title">Ask better questions.<br><span>Get answers with receipts.</span></div>', unsafe_allow_html=True)
-st.markdown('<div class="hero-sub">A research workspace for exploring live warehouse data in plain language. Every answer comes with the query, returned rows, and execution details so you can check the work—not just trust the summary.</div>', unsafe_allow_html=True)
-st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
+    agent = st.session_state.agents[selected_key]
 
-# Compact live workspace indicators.
-last = st.session_state.last_result or {}
-latency = f"{last.get('execution_time_ms', '—')} ms" if last else "—"
-rows_count = str(last.get("row_count", "—")) if last else "—"
-cost = f"{last.get('cost_estimate_credits', 0.0):.4f} cr" if last else "—"
-c1, c2, c3, c4 = st.columns(4)
-for col, label, value, note in [
-    (c1, "ACTIVE DOMAIN", agent.dataset_info["name"], "Selected knowledge source"),
-    (c2, "LAST LATENCY", latency, "Warehouse execution"),
-    (c3, "ROWS RETURNED", rows_count, "Most recent successful query"),
-    (c4, "EST. CREDITS", cost, "Latest query estimate"),
-]:
-    with col:
-        st.markdown(f'<div class="stat-card"><div class="stat-label">{label}</div><div class="stat-value" style="font-size:{"17px" if label == "ACTIVE DOMAIN" else "24px"}">{value}</div><div class="stat-note">{note}</div></div>', unsafe_allow_html=True)
+    if "domain_histories" not in st.session_state:
+        st.session_state.domain_histories = {k: [] for k in dataset_keys}
 
-st.markdown("<br>", unsafe_allow_html=True)
-st.markdown('<div class="section-title">Start with a direction</div><div class="small-note">Choose a research lead, or write your own question below.</div>', unsafe_allow_html=True)
-if selected_key == "global_development":
-    samples = [
-        ("01 / RANK", "Top 5 countries by GDP per capita in 2023", "What are the top 5 countries by GDP per capita in 2023?"),
-        ("02 / TREND", "India GDP and life expectancy, 2018–2023", "Show India's GDP per capita and life expectancy from 2018 to 2023"),
-        ("03 / DISCOVER", "Which countries are in this dataset?", "Which countries are available in the dataset?"),
-        ("04 / COMPARE", "China vs India CO₂ emissions in 2023", "Compare CO2 emissions per capita between China and India in 2023"),
-    ]
-else:
-    samples = [
-        ("01 / RANK", "Department with highest average exam score", "Which department has the highest average exam score?"),
-        ("02 / FILTER", "Students with A/A+ and weekly study hours", "List all students with an A or A+ grade and their weekly study hours"),
-        ("03 / SCHEMA", "Explore available metrics and columns", "What metrics and columns are in this table?"),
-        ("04 / SIGNAL", "Students with attendance below 70%", "Which students have attendance below 70 percent?"),
-    ]
-cols = st.columns(4)
-for i, (tag, title, query) in enumerate(samples):
-    with cols[i]:
-        st.markdown(f'<div class="prompt-card"><div class="prompt-tag">{tag}</div><div class="prompt-copy">{title}</div></div>', unsafe_allow_html=True)
-        if st.button("Explore ↗", key=f"sample_{i}", use_container_width=True):
-            st.session_state.query_text = query
-            st.session_state.run_query_now = True
+    # Active chat history for current selected dataset
+    chat_history = st.session_state.domain_histories[selected_key]
 
-st.markdown("<br>", unsafe_allow_html=True)
-with st.form("query_form", clear_on_submit=False):
-    st.markdown('<div class="section-title">Your question</div>', unsafe_allow_html=True)
-    query_value = st.text_area("Ask in natural language", value=st.session_state.query_text, height=95, placeholder="e.g. Which regions improved the most, and what evidence supports that?", label_visibility="collapsed")
-    left, right = st.columns([4, 1])
-    with left:
-        st.caption("Tip: specify a metric, time range, or comparison to make the result more precise.")
-    with right:
-        submitted = st.form_submit_button("Run analysis  ↗", type="primary", use_container_width=True)
+    # Domain Info Card
+    with st.container():
+        st.markdown(f"""
+        **Target Table**: `{agent.dataset_info['table_name']}`  
+        **Catalog**: `DATAMIND_DB.PUBLIC`  
+        **Description**: {agent.dataset_info['description']}
+        """)
 
-run_sample = st.session_state.pop("run_query_now", False)
-query_to_run = query_value.strip() if submitted else (st.session_state.query_text.strip() if run_sample else "")
-if query_to_run:
-    st.session_state.query_text = query_to_run
-    with st.spinner("Translating question · validating SQL · querying Snowflake…"):
-        result = agent.answer_question(query_to_run)
-    st.session_state.last_result = result if result.get("status") == "success" else st.session_state.last_result
-    status = result.get("status")
-    st.markdown("<div class='rule'></div>", unsafe_allow_html=True)
-    st.markdown('<div class="eyebrow">LATEST RUN  /  EVIDENCE RECORD</div>', unsafe_allow_html=True)
-    if status == "success":
-        st.markdown('<div class="answer-panel"><div class="answer-label">◉ VERIFIED RESPONSE</div>', unsafe_allow_html=True)
-        st.markdown(result.get("direct_answer", "No answer returned."))
-        st.markdown('</div>', unsafe_allow_html=True)
-        df = pd.DataFrame(result.get("rows", []), columns=result.get("columns", [])) if result.get("columns") else pd.DataFrame()
-        if not df.empty:
-            st.markdown("<br><div class='section-title'>Read the shape of the data</div>", unsafe_allow_html=True)
-            numeric_cols = df.select_dtypes(include="number").columns.tolist()
-            categorical_cols = [c for c in df.columns if c not in numeric_cols]
-            chart_col1, chart_col2 = st.columns([1, 1])
-            with chart_col1:
-                chart_type = st.selectbox("VIEW", ["Auto view", "Table only", "Bar comparison", "Line trend"], key=f"chart_type_{len(st.session_state.chat_history)}")
-            with chart_col2:
-                if numeric_cols and categorical_cols:
-                    x_col = st.selectbox("CATEGORY / X AXIS", categorical_cols, key=f"x_{len(st.session_state.chat_history)}")
-                    y_col = st.selectbox("MEASURE / Y AXIS", numeric_cols, key=f"y_{len(st.session_state.chat_history)}")
-                else:
-                    x_col = y_col = None
-            should_chart = chart_type in ["Bar comparison", "Line trend"] or (chart_type == "Auto view" and len(df.columns) == 2 and x_col and y_col)
-            if should_chart and x_col and y_col:
-                plot_df = df[[x_col, y_col]].dropna().set_index(x_col)
-                if chart_type == "Line trend" or (chart_type == "Auto view" and any("YEAR" in str(x).upper() for x in [x_col])):
-                    st.line_chart(plot_df)
-                else:
-                    st.bar_chart(plot_df)
-            with st.expander("Open result table", expanded=True):
-                st.dataframe(df, use_container_width=True, hide_index=True)
-                st.download_button("↓ Download results as CSV", data=df.to_csv(index=False).encode("utf-8"), file_name=f"datamind_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mime="text/csv")
-        else:
-            st.info("The warehouse returned no rows for this query.")
-        st.markdown("<br><div class='section-title'>Evidence locker</div><div class='small-note'>Inspect exactly what ran and what came back from the warehouse.</div>", unsafe_allow_html=True)
-        tab_sql, tab_rows, tab_perf = st.tabs(["01 · Executed SQL", "02 · Returned rows", "03 · Runtime & cost"])
-        with tab_sql:
-            sql = result.get("sql", "")
-            st.code(sql, language="sql")
-            st.download_button("↓ Save SQL", data=sql, file_name="datamind_query.sql", mime="text/sql")
-            st.caption("Validated read-only query executed against the configured Snowflake warehouse.")
-        with tab_rows:
-            if not df.empty:
-                st.dataframe(df, use_container_width=True, hide_index=True)
-            else:
-                st.caption("No result rows to display.")
-        with tab_perf:
-            p1, p2, p3 = st.columns(3)
-            p1.metric("Execution latency", f"{result.get('execution_time_ms', '—')} ms")
-            p2.metric("Rows returned", result.get("row_count", len(df)))
-            p3.metric("Estimated credits", f"{result.get('cost_estimate_credits', 0.0)} cr")
-            st.caption("Credit usage is an estimate supplied by the application; actual billing may differ.")
-        st.session_state.chat_history.append({"role": "assistant", "question": query_to_run, "content": result.get("direct_answer", ""), "sql": result.get("sql", ""), "df": df, "result": result})
+    # Multi-Turn Conversational Memory Monitor
+    st.markdown("---")
+    st.markdown("##### 🧠 Conversational Context Monitor")
+    turn_count = len(agent.conversation_history)
+    if turn_count == 0:
+        st.caption("Fresh context: awaiting first inquiry.")
     else:
-        messages = {
-            "ambiguous": ("Clarification needed", "The question may have more than one interpretation. Refine the metric, group, or time range and try again."),
-            "refused": ("Safety guardrail activated", "This request was blocked by the query safety layer."),
-            "out_of_scope": ("Outside this data domain", "Try asking about information available in the selected dataset."),
-        }
-        heading, hint = messages.get(status, ("The analysis could not complete", "Check the configuration and service connectivity, then try again."))
-        st.warning(f"**{heading}**\n\n{result.get('direct_answer', hint)}\n\n_{hint}_")
-        st.session_state.chat_history.append({"role": "assistant", "question": query_to_run, "content": result.get("direct_answer", hint)})
+        st.markdown(f"**{turn_count} turns** in active memory:")
+        for idx, t in enumerate(agent.conversation_history[-3:], 1):
+            q_short = t['question'][:36] + ("..." if len(t['question']) > 36 else "")
+            st.markdown(f"• Turn {idx}: *\"{q_short}\"*")
 
-# Session timeline stays useful after the latest answer.
-if st.session_state.chat_history:
-    st.markdown("<div class='rule'></div><div class='section-title'>Session trail</div><div class='small-note'>Questions asked in this workspace. Reuse any prompt from the left rail.</div>", unsafe_allow_html=True)
-    for idx, item in enumerate(reversed(st.session_state.chat_history[-8:])):
-        with st.expander(f"{len(st.session_state.chat_history) - idx:02d}  ·  {item.get('question', 'Analysis')}"):
-            st.markdown(item.get("content", ""))
-            if item.get("sql"):
-                st.code(item["sql"], language="sql")
+    st.markdown("---")
+    col_reset, col_clear = st.columns(2)
+    with col_reset:
+        if st.button("↺ Clear Chat", use_container_width=True):
+            agent.reset_conversation()
+            st.session_state.domain_histories[selected_key] = []
+            st.rerun()
+    with col_clear:
+        if st.button("↻ Reload App", use_container_width=True):
+            st.rerun()
 
-st.markdown("<br><div class='small-note'>DATAMIND / Built for inspectable, evidence-grounded exploration · Responses depend on live source availability.</div>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("##### ⛊ Enterprise Safeguards Active")
+    st.markdown("""
+    - ⚿ **Read-Only AST Guard**: Blocks `DROP`, `DELETE`, `ALTER`
+    - ⚲ **Claim-to-Row Badging**: Strict citation indexing
+    - ⚡ **Warehouse Monitoring**: Real-time compute tracking
+    - ◈ **Model**: Google Gemma 4 (26B MoE)
+    """)
+
+# Hero Section
+record_badge = "◉ 1,044 Verified Student Records (Math & Portuguese)" if selected_key == "student_performance" else "◉ 164 Sovereign Economies Loaded"
+st.markdown(f"""
+<div class="hero-banner">
+    <div class="hero-title">❄ DataMind Analytics Engine</div>
+    <div class="hero-subtitle">
+        Natural language data intelligence connected directly to <b>Snowflake Cloud Data Warehouse</b> and orchestrated by <b>Google Gemma 4</b>.
+        Every single figure is computed live with inspectable SQL, raw row data, and verifiable claim badges.
+    </div>
+    <div class="badge-container">
+        <span class="status-badge">❄ Snowflake COMPUTE_WH Active</span>
+        <span class="status-badge gemma">◈ Google Gemma 4 Reasoning</span>
+        <span class="status-badge guardrail">⛊ Anti-Injection AST Guard</span>
+        <span class="status-badge">{record_badge}</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Quick Discovery Prompt Pills
+st.markdown("##### ✦ Suggested Executive Inquiries:")
+col1, col2, col3, col4 = st.columns(4)
+
+sample_query = None
+if selected_key == "global_development":
+    if col1.button("■ Top 5 Economies by GDP (2023)", use_container_width=True):
+        sample_query = "What are the top 5 countries by GDP per capita in 2023?"
+    if col2.button("▲ India GDP & Emissions Trend", use_container_width=True):
+        sample_query = "Show India's GDP per capita and CO2 emissions from 2018 to 2023"
+    if col3.button("◉ Compare Argentina & Spain", use_container_width=True):
+        sample_query = "Compare the GDP per capita and CO2 emissions of Argentina and Spain in 2022"
+    if col4.button("⚲ Explore Available Countries", use_container_width=True):
+        sample_query = "Which countries are available in the dataset?"
+else:
+    if col1.button("◆ Pass Rate: Math vs Portuguese", use_container_width=True):
+        sample_query = "Compare the pass rate (G3 >= 10) and average final grade between Math and Portuguese students"
+    if col2.button("⏱ Study Time Impact on Final Grade", use_container_width=True):
+        sample_query = "What is the average final grade (G3) and student count across weekly study time levels?"
+    if col3.button("≡ Alcohol Consumption vs Grades", use_container_width=True):
+        sample_query = "Compare average final grades (G3) for students with low weekend alcohol (Walc <= 2) versus high weekend alcohol (Walc >= 4)"
+    if col4.button("▲ Parental Education Effect", use_container_width=True):
+        sample_query = "How does mother education level (Medu) affect students average final grade (G3) and pass rate?"
+
+def render_auto_chart(df: pd.DataFrame):
+    """
+    Intelligently detects time-series and comparative metrics
+    to render production-grade interactive visualizations.
+    """
+    if df is None or df.empty or len(df.columns) < 2:
+        return
+
+    df = df.copy()
+    # Coerce Snowflake Decimals or numeric strings to float/int
+    for col in df.columns:
+        try:
+            df[col] = pd.to_numeric(df[col])
+        except (ValueError, TypeError):
+            pass
+
+    cols = df.columns.tolist()
+    cols_upper = [c.upper() for c in cols]
+    
+    # 1. Multi-Year Time Series Line Trend
+    if any("YEAR" in c for c in cols_upper):
+        year_col = [c for c in cols if "YEAR" in c.upper()][0]
+        numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        numeric_cols = [c for c in numeric_cols if c != year_col]
+        
+        if numeric_cols:
+            st.markdown("##### ▲ **Verified Time-Series Visualization**")
+            if any("COUNTRY" in c for c in cols_upper):
+                country_col = [c for c in cols if "COUNTRY" in c.upper()][0]
+                try:
+                    pivoted = df.pivot(index=year_col, columns=country_col, values=numeric_cols[0])
+                    st.line_chart(pivoted, use_container_width=True)
+                except Exception:
+                    st.line_chart(df.set_index(year_col)[numeric_cols], use_container_width=True)
+            else:
+                st.line_chart(df.set_index(year_col)[numeric_cols], use_container_width=True)
+
+    # 2. Categorical Comparison Bar Chart
+    else:
+        cat_match_keywords = ["SUBJECT", "SCHOOL", "SEX", "STUDYTIME", "WALC", "DALC", "MEDU", "FEDU", "ADDRESS", "COUNTRY", "DEPT", "DEPARTMENT"]
+        has_cat = any(any(kw in c for kw in cat_match_keywords) for c in cols_upper)
+        if len(cols) >= 2 and (has_cat or df[cols[0]].dtype == "object"):
+            cat_col = cols[0]
+            num_candidates = df.select_dtypes(include=["number"]).columns.tolist()
+            num_candidates = [c for c in num_candidates if c != cat_col]
+            if num_candidates:
+                val_col = num_candidates[0]
+                st.markdown(f"##### ■ **Comparative Analytics: {val_col} by {cat_col}**")
+                chart_df = df[[cat_col, val_col]].dropna().set_index(cat_col)
+                st.bar_chart(chart_df, use_container_width=True)
+
+# Render Historical Messages for Current Domain
+for chat in chat_history:
+    with st.chat_message(chat["role"]):
+        if chat.get("context_pill"):
+            st.markdown(chat["context_pill"], unsafe_allow_html=True)
+        st.markdown(chat["content"])
+        if "df" in chat and chat["df"] is not None and not chat["df"].empty:
+            render_auto_chart(chat["df"])
+        if "sql" in chat and chat["sql"]:
+            with st.expander("⚲ View Inspected SQL & Data Evidence"):
+                st.code(chat["sql"], language="sql")
+                if "df" in chat and chat["df"] is not None:
+                    st.dataframe(chat["df"], use_container_width=True)
+
+# Interactive Chat Input
+user_query = st.chat_input("Ask any question or follow up on previous analysis...")
+query_to_run = user_query or sample_query
+
+if query_to_run:
+    # Append User Message to domain history
+    chat_history.append({"role": "user", "content": query_to_run})
+    with st.chat_message("user"):
+        st.write(query_to_run)
+
+    with st.chat_message("assistant"):
+        with st.spinner("⚡ Gemma 4 synthesizing query & executing on Snowflake warehouse..."):
+            result = agent.answer_question(query_to_run)
+
+        status = result.get("status")
+
+        if status == "success":
+            context_pill = None
+            if result.get("is_follow_up") and result.get("prior_inquiry"):
+                context_pill = f"""
+                <div style="background: rgba(66, 133, 244, 0.12); border: 1px solid rgba(66, 133, 244, 0.35); border-radius: 8px; padding: 6px 14px; margin-bottom: 12px; font-size: 0.85rem; color: #8AB4F8; display: inline-flex; align-items: center; gap: 8px;">
+                    <span>🧠</span> <span><b>Multi-Turn Context Resolved</b>: Follow-up contextualized from previous inquiry: <i>"{result['prior_inquiry']}"</i></span>
+                </div>
+                """
+                st.markdown(context_pill, unsafe_allow_html=True)
+
+            st.markdown(result["direct_answer"])
+
+            # Dataframe for rows
+            df = None
+            if result["rows"] and result["columns"]:
+                df = pd.DataFrame(result["rows"], columns=result["columns"])
+                # Auto-render chart
+                render_auto_chart(df)
+
+            # Executive Evidence Container (M4 & M5)
+            st.markdown("---")
+            st.markdown("#### ⚲ **Inspectable Evidence & Verification Suite**")
+            
+            tab_sql, tab_rows, tab_metrics = st.tabs([
+                "✎ Executed Snowflake SQL",
+                "≡ Live Result Records & Export",
+                "⚡ Warehouse Compute & Cost Analytics"
+            ])
+
+            with tab_sql:
+                st.code(result["sql"], language="sql")
+                st.caption("✓ Validated read-only query executed directly on Snowflake compute warehouse at question time.")
+
+            with tab_rows:
+                if df is not None and not df.empty:
+                    st.dataframe(df, use_container_width=True)
+                    csv_data = df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="↓ Download Grounded Data (CSV)",
+                        data=csv_data,
+                        file_name=f"datamind_snowflake_result.csv",
+                        mime="text/csv",
+                        use_container_width=False
+                    )
+                else:
+                    st.warning("No rows returned from the warehouse for the given criteria.")
+
+            with tab_metrics:
+                # KPI Grid
+                m1, m2, m3, m4 = st.columns(4)
+                with m1:
+                    st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Query Latency</div>
+                        <div class="kpi-value">{result['execution_time_ms']} ms</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with m2:
+                    st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Rows Evaluated</div>
+                        <div class="kpi-value">{result['row_count']}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with m3:
+                    st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Est. Snowflake Credits</div>
+                        <div class="kpi-value">{result.get('cost_estimate_credits', 0.0)} cr</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with m4:
+                    st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Reasoning Engine</div>
+                        <div class="kpi-value" style="font-size: 1.1rem; color: #8AB4F8;">Gemma 4 (26B)</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.caption(f"Connected to Snowflake Warehouse `COMPUTE_WH` on `DATAMIND_DB.PUBLIC`. Claim citations verified against active query index.")
+
+            # Record in domain history
+            chat_history.append({
+                "role": "assistant",
+                "content": result["direct_answer"],
+                "sql": result["sql"],
+                "df": df,
+                "context_pill": context_pill
+            })
+
+        elif status == "ambiguous":
+            st.warning(f"**⚠ Ambiguity Detected (M6 Guardrail):**\n\n{result['direct_answer']}")
+            chat_history.append({"role": "assistant", "content": result["direct_answer"]})
+        elif status == "refused":
+            st.error(f"**⛔ Security Guardrail Refusal (M6):**\n\n{result['direct_answer']}")
+            chat_history.append({"role": "assistant", "content": result["direct_answer"]})
+        elif status == "out_of_scope":
+            st.info(f"**ℹ Dataset Boundary Limitation (M6):**\n\n{result['direct_answer']}")
+            chat_history.append({"role": "assistant", "content": result["direct_answer"]})
+        else:
+            st.error(f"**✕ Execution Error:**\n\n{result['direct_answer']}")
+            chat_history.append({"role": "assistant", "content": result["direct_answer"]})

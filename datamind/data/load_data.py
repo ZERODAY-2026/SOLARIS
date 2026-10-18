@@ -1,11 +1,14 @@
 import os
 import snowflake.connector
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 def populate_sample_data():
-    host = os.getenv("SNOWFLAKE_HOST", "ol15456.ap-south-1.aws.snowflakecomputing.com")
-    account = os.getenv("SNOWFLAKE_ACCOUNT", "ol15456")
-    user = os.getenv("SNOWFLAKE_USER", "KIRITO2026")
-    password = os.getenv("SNOWFLAKE_PASSWORD", "91RIOMTITAnkirito")
+    host = os.getenv("SNOWFLAKE_HOST")
+    account = os.getenv("SNOWFLAKE_ACCOUNT")
+    user = os.getenv("SNOWFLAKE_USER")
+    password = os.getenv("SNOWFLAKE_PASSWORD")
     database = os.getenv("SNOWFLAKE_DATABASE", "DATAMIND_DB")
     schema = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
 

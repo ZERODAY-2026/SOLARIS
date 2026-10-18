@@ -14,10 +14,10 @@ class SnowflakeClient:
     metadata extraction, and SQL safety guardrails.
     """
     def __init__(self):
-        self.account = os.getenv("SNOWFLAKE_ACCOUNT", "ol15456")
-        self.host = os.getenv("SNOWFLAKE_HOST", "ol15456.ap-south-1.aws.snowflakecomputing.com")
-        self.user = os.getenv("SNOWFLAKE_USER", "KIRITO2026")
-        self.password = os.getenv("SNOWFLAKE_PASSWORD", "91RIOMTITAnkirito")
+        self.account = os.getenv("SNOWFLAKE_ACCOUNT", "")
+        self.host = os.getenv("SNOWFLAKE_HOST", "")
+        self.user = os.getenv("SNOWFLAKE_USER", "")
+        self.password = os.getenv("SNOWFLAKE_PASSWORD", "")
         self.warehouse = os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
         self.database = os.getenv("SNOWFLAKE_DATABASE", "DATAMIND_DB")
         self.schema = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")

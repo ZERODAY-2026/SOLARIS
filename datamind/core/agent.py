@@ -41,24 +41,75 @@ class DataMindAgent:
     def reset_conversation(self):
         self.conversation_history.clear()
 
+    def get_conversation_context_str(self) -> str:
+        if not self.conversation_history:
+            return ""
+        recent = self.conversation_history[-3:]
+        lines = ["Prior Conversation Turns:"]
+        for i, turn in enumerate(recent, 1):
+            lines.append(f"Turn {i} User Question: \"{turn['question']}\"")
+            if turn.get("sql"):
+                lines.append(f"Turn {i} Executed SQL Query:\n{turn['sql']}")
+        lines.append("(CRITICAL CONTEXT RULE: If the user question is a follow-up, refinement, or asks 'what about females', 'in math', 'show top 5', or uses pronouns 'they', 'it', 'them', adapt and extend the previous Executed SQL query with the new filters/dimensions.)\n")
+        return "\n".join(lines) + "\n"
+
     def handle_schema_discovery(self, question: str) -> Optional[Dict[str, Any]]:
         """
-        Detects meta-questions asking about available tables, metrics, countries, or columns.
+        Detects meta-questions asking about available tables, metrics, subjects, features, or columns.
         Answers them by querying Snowflake metadata or dataset configuration directly.
         """
         q_lower = question.lower()
         schema_keywords = [
-            "what tables", "what columns", "what metrics", "what indicators",
+            "what tables", "what columns", "what metrics", "what indicators", "what features",
+            "which subjects", "what subjects", "which schools", "what schools",
             "which countries", "what countries", "what years", "available data",
-            "show schema", "list indicators"
+            "show schema", "list indicators", "list features", "list columns"
         ]
         if not any(kw in q_lower for kw in schema_keywords):
             return None
 
-        # Build schema discovery response
         table = self.dataset_info["table_name"]
+
+        # Subject discovery
+        if "subject" in q_lower and "STUDENT" in table.upper():
+            sql = f"SELECT DISTINCT subject, COUNT(*) AS student_count FROM {table} GROUP BY subject ORDER BY subject"
+            res = self.snowflake.execute_query(sql)
+            if res["success"]:
+                subj_str = ", ".join([f"{r[0]} ({r[1]} students)" for r in res["rows"]])
+                direct_ans = f"**Available Course Subjects**:\n\n{subj_str}\n\nTotal students across both subjects: 1,044."
+                return {
+                    "status": "success",
+                    "direct_answer": direct_ans,
+                    "sql": sql,
+                    "rows": res["rows"],
+                    "columns": ["SUBJECT", "STUDENT_COUNT"],
+                    "row_count": len(res["rows"]),
+                    "execution_time_ms": res["execution_time_ms"],
+                    "dataset": self.dataset_info["name"],
+                    "cost_estimate_credits": round((res["execution_time_ms"] / 1000.0) * (1.0 / 3600.0), 6)
+                }
+
+        # School discovery
+        if "school" in q_lower and "STUDENT" in table.upper():
+            sql = f"SELECT school, COUNT(*) AS student_count FROM {table} GROUP BY school ORDER BY school"
+            res = self.snowflake.execute_query(sql)
+            if res["success"]:
+                school_map = {"GP": "Gabriel Pereira (GP)", "MS": "Mousinho da Silveira (MS)"}
+                sch_str = "\n".join([f"- **{school_map.get(r[0], r[0])}**: {r[1]} students" for r in res["rows"]])
+                direct_ans = f"**Participating Secondary Schools**:\n\n{sch_str}"
+                return {
+                    "status": "success",
+                    "direct_answer": direct_ans,
+                    "sql": sql,
+                    "rows": res["rows"],
+                    "columns": ["SCHOOL", "STUDENT_COUNT"],
+                    "row_count": len(res["rows"]),
+                    "execution_time_ms": res["execution_time_ms"],
+                    "dataset": self.dataset_info["name"],
+                    "cost_estimate_credits": round((res["execution_time_ms"] / 1000.0) * (1.0 / 3600.0), 6)
+                }
         
-        if "country" in q_lower or "countries" in q_lower:
+        if ("country" in q_lower or "countries" in q_lower) and "GLOBAL" in table.upper():
             sql = f"SELECT DISTINCT country FROM {table} ORDER BY country"
             res = self.snowflake.execute_query(sql)
             if res["success"]:
@@ -77,7 +128,7 @@ class DataMindAgent:
                 }
 
         # Otherwise describe the schema & metrics
-        metrics_desc = f"""**Dataset Schema & Indicators for `{self.dataset_info['name']}`**:
+        metrics_desc = f"""**Dataset Schema & Attributes for `{self.dataset_info['name']}`**:
 
 * **Target Table**: `{self.dataset_info['table_name']}`
 * **Description**: {self.dataset_info['description']}
@@ -88,7 +139,7 @@ class DataMindAgent:
             "status": "success",
             "direct_answer": metrics_desc,
             "sql": f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table.upper()}';",
-            "rows": [["Available metrics displayed above"]],
+            "rows": [["Available features displayed above"]],
             "columns": ["SCHEMA_INFO"],
             "row_count": 1,
             "execution_time_ms": 5.0,
@@ -97,10 +148,7 @@ class DataMindAgent:
         }
 
     def classify_intent(self, question: str) -> Dict[str, Any]:
-        context_str = ""
-        if self.conversation_history:
-            recent = self.conversation_history[-4:]
-            context_str = "Recent Conversation Context:\n" + "\n".join([f"{item['role']}: {item['content']}" for item in recent]) + "\n"
+        context_str = self.get_conversation_context_str()
 
         user_prompt = f"""
 Available Dataset: {self.dataset_info['name']}
@@ -126,10 +174,7 @@ Current User Question: "{question}"
             }
 
     def generate_sql(self, question: str) -> str:
-        context_str = ""
-        if self.conversation_history:
-            recent = self.conversation_history[-4:]
-            context_str = "Prior Conversation History (Use to resolve pronouns like 'it', 'that', 'them', or implicit follow-ups):\n" + "\n".join([f"{item['role']}: {item['content']}" for item in recent]) + "\n"
+        context_str = self.get_conversation_context_str()
 
         user_prompt = f"""
 Database: Snowflake
@@ -180,8 +225,11 @@ Provide a grounded, factual, plain-language answer following the rules.
         # Step 0: Check for Schema Discovery / Metadata question
         schema_ans = self.handle_schema_discovery(question)
         if schema_ans:
-            self.conversation_history.append({"role": "User", "content": question})
-            self.conversation_history.append({"role": "Assistant", "content": schema_ans["direct_answer"]})
+            self.conversation_history.append({
+                "question": question,
+                "sql": schema_ans.get("sql"),
+                "direct_answer": schema_ans.get("direct_answer", "")
+            })
             return schema_ans
 
         # Step 1: Intent & Ambiguity Check (M6)
@@ -202,7 +250,12 @@ Provide a grounded, factual, plain-language answer following the rules.
             }
 
         if classification == "AMBIGUOUS":
-            clarification = intent.get("clarification_needed") or "Could you please specify which country, year, or metric you want to inspect?"
+            clarification = intent.get("clarification_needed") or "Could you please specify which subject or metric you want to inspect?"
+            self.conversation_history.append({
+                "question": question,
+                "sql": None,
+                "direct_answer": f"Clarification requested: {clarification}"
+            })
             return {
                 "status": "ambiguous",
                 "direct_answer": f"The question requires clarification. {clarification}",
@@ -258,9 +311,16 @@ Provide a grounded, factual, plain-language answer following the rules.
             columns=exec_result["columns"]
         )
 
-        # Update Conversation Memory
-        self.conversation_history.append({"role": "User", "content": question})
-        self.conversation_history.append({"role": "Assistant", "content": f"Query: {sql}\nResult: {explanation}"})
+        # Check if this query is a follow-up
+        is_follow_up = len(self.conversation_history) > 0
+        prior_query = self.conversation_history[-1]["question"] if is_follow_up else None
+
+        # Update Conversation Memory with clean structured turn
+        self.conversation_history.append({
+            "question": question,
+            "sql": sql,
+            "direct_answer": explanation
+        })
 
         return {
             "status": "success",
@@ -271,5 +331,7 @@ Provide a grounded, factual, plain-language answer following the rules.
             "row_count": exec_result["row_count"],
             "execution_time_ms": exec_result["execution_time_ms"],
             "dataset": self.dataset_info['name'],
-            "cost_estimate_credits": credit_est
+            "cost_estimate_credits": credit_est,
+            "is_follow_up": is_follow_up,
+            "prior_inquiry": prior_query
         }

@@ -1,33 +1,62 @@
-active_dataset: "global_development"
+active_dataset: "student_performance"
 
 datasets:
+  student_performance:
+    name: "UCI Student Performance Benchmark (Complete 1,044 Records)"
+    table_name: "STUDENT_PERFORMANCE"
+    description: "Official UCI Machine Learning dataset of 1,044 secondary school students across Mathematics and Portuguese subjects, featuring 35 comprehensive academic, demographic, social, and behavioral attributes."
+    schema_description: |
+      Table: STUDENT_PERFORMANCE
+      Total Records: 1,044 (395 Math, 649 Portuguese)
+      Columns:
+      - student_id (VARCHAR): Unique student identifier (e.g. 'MAT_001' to 'MAT_395' for Math; 'POR_001' to 'POR_649' for Portuguese)
+      - subject (VARCHAR): Course subject ('Math' or 'Portuguese')
+      - school (VARCHAR): Student school ('GP' for Gabriel Pereira, 'MS' for Mousinho da Silveira)
+      - sex (VARCHAR): Gender ('F' for female, 'M' for male)
+      - age (INT): Student age (values 15 to 22 years)
+      - address (VARCHAR): Home address type ('U' for urban, 'R' for rural)
+      - famsize (VARCHAR): Family size ('LE3' for <= 3 members, 'GT3' for > 3 members)
+      - pstatus (VARCHAR): Parent cohabitation status ('T' for living together, 'A' for apart)
+      - medu (INT): Mother education level (0=none, 1=primary 4th grade, 2=5th to 9th grade, 3=secondary, 4=higher education)
+      - fedu (INT): Father education level (0=none, 1=primary 4th grade, 2=5th to 9th grade, 3=secondary, 4=higher education)
+      - mjob (VARCHAR): Mother job ('teacher', 'health' care, civil 'services', 'at_home', 'other')
+      - fjob (VARCHAR): Father job ('teacher', 'health' care, civil 'services', 'at_home', 'other')
+      - reason (VARCHAR): Reason to choose school ('home' proximity, school 'reputation', 'course' preference, 'other')
+      - guardian (VARCHAR): Student guardian ('mother', 'father', 'other')
+      - traveltime (INT): Travel time to school (1=<15 min, 2=15-30 min, 3=30-60 min, 4=>60 min)
+      - studytime (INT): Weekly study time (1=<2 hours, 2=2 to 5 hours, 3=5 to 10 hours, 4=>10 hours)
+      - failures (INT): Past class failures (0 to 3, or 4 for >= 4)
+      - schoolsup (VARCHAR): Extra school educational support ('yes' or 'no')
+      - famsup (VARCHAR): Family educational support ('yes' or 'no')
+      - paid (VARCHAR): Extra paid tutoring classes in subject ('yes' or 'no')
+      - activities (VARCHAR): Extracurricular activities ('yes' or 'no')
+      - nursery (VARCHAR): Attended nursery school ('yes' or 'no')
+      - higher (VARCHAR): Aims to pursue higher education ('yes' or 'no')
+      - internet (VARCHAR): Internet access at home ('yes' or 'no')
+      - romantic (VARCHAR): In a romantic relationship ('yes' or 'no')
+      - famrel (INT): Quality of family relationships (1=very bad to 5=excellent)
+      - freetime (INT): Free time after school (1=very low to 5=very high)
+      - goout (INT): Going out with friends (1=very low to 5=very high)
+      - dalc (INT): Workday alcohol consumption (1=very low to 5=very high)
+      - walc (INT): Weekend alcohol consumption (1=very low to 5=very high)
+      - health (INT): Current health status (1=very bad to 5=very good)
+      - absences (INT): Number of school absences (0 to 93)
+      - g1 (INT): First period grade (0 to 20 scale)
+      - g2 (INT): Second period grade (0 to 20 scale)
+      - g3 (INT): Final exam grade (0 to 20 scale, standard Portuguese passing grade is >= 10)
+
   global_development:
     name: "Our World in Data - Global Health & Development"
     table_name: "GLOBAL_INDICATORS"
-    description: "Multi-year indicators (2018-2023) across major global economies."
+    description: "Macroeconomic and development indicators across major sovereign nations (2018-2023)."
     schema_description: |
       Table: GLOBAL_INDICATORS
       Columns:
-      - country (VARCHAR): Full country name (e.g. 'India', 'United States', 'China', 'Germany', 'Japan', 'Brazil', 'United Kingdom', 'France', 'Canada', 'Australia', 'South Africa', 'Italy', 'Russia', 'Mexico')
-      - country_code (VARCHAR): 3-letter ISO code (e.g. 'IND', 'USA', 'CHN', 'DEU', 'JPN', 'BRA', 'GBR', 'FRA', 'CAN', 'AUS', 'ZAF', 'ITA', 'RUS', 'MEX')
+      - country (VARCHAR): Full country name (e.g. 'India', 'United States', 'China', 'Germany', 'Japan', 'Brazil')
+      - country_code (VARCHAR): 3-letter ISO code (e.g. 'IND', 'USA', 'CHN', 'DEU', 'JPN', 'BRA')
       - year (INT): Calendar year (values range from 2018 to 2023)
       - gdp_per_capita (FLOAT): Gross Domestic Product per capita in current USD ($)
       - life_expectancy (FLOAT): Average life expectancy at birth in years
       - population (BIGINT): Total country population count
       - co2_emissions_mt (FLOAT): Carbon dioxide emissions in million metric tons (MT)
       - access_to_electricity_pct (FLOAT): Percentage of population with electricity access (%)
-
-  student_academics:
-    name: "UCI Academic Performance Benchmark"
-    table_name: "STUDENT_ACADEMIC_METRICS"
-    description: "Student course hours, attendance, assignments, and exam performance."
-    schema_description: |
-      Table: STUDENT_ACADEMIC_METRICS
-      Columns:
-      - student_id (VARCHAR): Unique student identifier (e.g. 'STU_101')
-      - department (VARCHAR): Academic department ('Computer Science', 'Data Science', 'Electrical Eng', 'Mechanical Eng')
-      - study_hours_weekly (FLOAT): Weekly self-study hours
-      - attendance_pct (FLOAT): Class attendance percentage (0 to 100)
-      - assignments_completed (INT): Number of submitted assignments (out of 10)
-      - exam_score (FLOAT): Final exam score (out of 100)
-      - grade (VARCHAR): Letter grade ('A+', 'A', 'B+', 'B', 'C', 'D', 'F')
