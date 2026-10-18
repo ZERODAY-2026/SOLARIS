@@ -9,22 +9,146 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from datamind.core.agent import DataMindAgent
 
 st.set_page_config(
-    page_title="DataMind - Talk to Your Data",
+    page_title="DataMind · Enterprise Data Intelligence",
     page_icon="❄️",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Custom Styling
+# Production-Grade Modern SaaS Theme Styling
 st.markdown("""
 <style>
-    .reportview-container {
-        background: #0e1117;
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    .metric-card {
-        background-color: #1e2530;
+
+    /* Gradient Header Accent */
+    .hero-banner {
+        background: linear-gradient(135deg, rgba(20, 26, 40, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
+        border: 1px solid rgba(41, 181, 232, 0.25);
+        border-radius: 16px;
+        padding: 24px 30px;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+    
+    .hero-title {
+        font-size: 2.1rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #FFFFFF 0%, #29B5E8 50%, #4285F4 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 6px;
+    }
+    
+    .hero-subtitle {
+        color: #94A3B8;
+        font-size: 0.98rem;
+        font-weight: 400;
+        line-height: 1.5;
+    }
+
+    /* Status Badges */
+    .badge-container {
+        display: flex;
+        gap: 10px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(41, 181, 232, 0.1);
+        border: 1px solid rgba(41, 181, 232, 0.3);
+        color: #38BDF8;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .status-badge.gemma {
+        background: rgba(66, 133, 244, 0.1);
+        border-color: rgba(66, 133, 244, 0.3);
+        color: #8AB4F8;
+    }
+
+    .status-badge.guardrail {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #34D399;
+    }
+
+    /* Metric & KPI Cards */
+    .kpi-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+        margin: 18px 0;
+    }
+
+    .kpi-card {
+        background: #141B26;
+        border: 1px solid #232E3F;
+        border-radius: 12px;
+        padding: 16px 20px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .kpi-card:hover {
+        border-color: #29B5E8;
+        transform: translateY(-2px);
+    }
+
+    .kpi-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748B;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .kpi-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #F8FAFC;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Chat message enhancements */
+    .stChatMessage {
+        border-radius: 14px !important;
+        margin-bottom: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Streamlit tabs modern look */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        border-bottom: 1px solid #232E3F;
+        padding-bottom: 4px;
+    }
+
+    .stTabs [data-baseweb="tab"] {
         border-radius: 8px;
-        padding: 15px;
-        border-left: 5px solid #29B5E8;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 0.88rem;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(41, 181, 232, 0.15) !important;
+        color: #38BDF8 !important;
+    }
+
+    /* Code Block Monospace Styling */
+    pre, code {
+        font-family: 'JetBrains Mono', monospace !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -35,130 +159,150 @@ def get_agent():
 
 agent = get_agent()
 
-# Initialize session state for chat history
+# Session State Setup
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Sidebar: Controls & Dataset Selection
+# Sidebar Configuration
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/f/ff/Snowflake_Logo.svg", width=160)
-    st.title("DataMind Settings")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/f/ff/Snowflake_Logo.svg", width=140)
+    st.markdown("### **DataMind Control Center**")
+    st.caption("ZeroDay OSS Hacktoberfest 2026 · Problem Statement 1")
+
+    st.markdown("---")
+    st.markdown("##### 🌐 Active Data Warehouse Domain")
     
-    st.subheader("Active Knowledge Domain")
     dataset_keys = list(agent.config["datasets"].keys())
     dataset_names = [agent.config["datasets"][k]["name"] for k in dataset_keys]
     
     selected_idx = st.selectbox(
-        "Choose Dataset:",
+        "Select Active Knowledge Domain:",
         range(len(dataset_keys)),
         format_func=lambda x: dataset_names[x]
     )
     selected_key = dataset_keys[selected_idx]
     
-    # If dataset changed, reset conversation
     if agent.active_dataset_key != selected_key:
         agent.set_active_dataset(selected_key)
         st.session_state.chat_history = []
         st.rerun()
 
-    st.info(f"**Target Table:** `{agent.dataset_info['table_name']}`\n\n{agent.dataset_info['description']}")
-    
-    if st.button("🔄 Reset Conversation History"):
-        agent.reset_conversation()
-        st.session_state.chat_history = []
-        st.success("Conversation cleared!")
-        st.rerun()
+    # Domain Info Card
+    with st.container():
+        st.markdown(f"""
+        **Target Table**: `{agent.dataset_info['table_name']}`  
+        **Catalog**: `DATAMIND_DB.PUBLIC`  
+        **Description**: {agent.dataset_info['description']}
+        """)
 
-    st.divider()
-    st.markdown("### System Architecture")
+    st.markdown("---")
+    col_reset, col_clear = st.columns(2)
+    with col_reset:
+        if st.button("🧹 Clear Chat", use_container_width=True):
+            agent.reset_conversation()
+            st.session_state.chat_history = []
+            st.rerun()
+    with col_clear:
+        if st.button("🔄 Reload App", use_container_width=True):
+            st.rerun()
+
+    st.markdown("---")
+    st.markdown("##### 🛡️ Enterprise Safeguards Active")
     st.markdown("""
-    - **Data Platform**: Snowflake (Trial Cloud Warehouse)
-    - **AI Model**: Google Gemma 4 (26B/31B MoE)
-    - **Safety Layer**: AST Read-Only & Anti-Injection Guardrails
-    - **Grounding**: Strict Claim-to-Row Verification
-    - **Memory**: Multi-Turn Follow-Up Support
+    - 🔒 **Read-Only AST Guard**: Blocks `DROP`, `DELETE`, `ALTER`
+    - 🔍 **Claim-to-Row Badging**: Strict citation indexing
+    - ⚡ **Warehouse Monitoring**: Real-time compute tracking
+    - 🧠 **Model**: Google Gemma 4 (26B MoE)
     """)
 
-# Main Screen
-st.title("❄️ DataMind: Talk to Your Data")
-st.caption("ZeroDay OSS Hacktoberfest 2026 · Problem Statement 1 (IIIT Dharwad)")
-
+# Hero Section
 st.markdown("""
-Ask questions in everyday natural language. Every answer is **computed from live Snowflake data** at question time, with complete inspectable evidence, automatic data visualizations, and cost tracking.
-""")
+<div class="hero-banner">
+    <div class="hero-title">❄️ DataMind Analytics Engine</div>
+    <div class="hero-subtitle">
+        Natural language data intelligence connected directly to <b>Snowflake Cloud Data Warehouse</b> and orchestrated by <b>Google Gemma 4</b>.
+        Every single figure is computed live with inspectable SQL, raw row data, and verifiable claim badges.
+    </div>
+    <div class="badge-container">
+        <span class="status-badge">❄️ Snowflake COMPUTE_WH Active</span>
+        <span class="status-badge gemma">🧠 Google Gemma 4 Reasoning</span>
+        <span class="status-badge guardrail">🛡️ Anti-Injection AST Guard</span>
+        <span class="status-badge">🌍 164 Sovereign Economies Loaded</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-# Quick Question Pills
-st.markdown("##### 💡 Try Sample Inquiries:")
+# Quick Discovery Prompt Pills
+st.markdown("##### 💡 Suggested Executive Inquiries:")
 col1, col2, col3, col4 = st.columns(4)
 
 sample_query = None
 if selected_key == "global_development":
-    if col1.button("📊 Top 5 Countries by GDP (2023)"):
+    if col1.button("📊 Top 5 Economies by GDP (2023)", use_container_width=True):
         sample_query = "What are the top 5 countries by GDP per capita in 2023?"
-    if col2.button("📈 India GDP & Life Expectancy Trend"):
-        sample_query = "Show India's GDP per capita and life expectancy from 2018 to 2023"
-    if col3.button("🌍 Which Countries Are Available?"):
+    if col2.button("📈 India GDP & Emissions Trend", use_container_width=True):
+        sample_query = "Show India's GDP per capita and CO2 emissions from 2018 to 2023"
+    if col3.button("🌍 Compare Argentina & Spain", use_container_width=True):
+        sample_query = "Compare the GDP per capita and CO2 emissions of Argentina and Spain in 2022"
+    if col4.button("🔍 Explore Available Countries", use_container_width=True):
         sample_query = "Which countries are available in the dataset?"
-    if col4.button("🌱 CO2 Comparison (China vs India)"):
-        sample_query = "Compare CO2 emissions per capita between China and India in 2023"
 else:
-    if col1.button("🎓 Highest Average Exam Score"):
+    if col1.button("🎓 Highest Average Exam Score", use_container_width=True):
         sample_query = "Which department has the highest average exam score?"
-    if col2.button("⏱️ Study Hours vs Grade"):
+    if col2.button("⏱️ Study Hours vs Grade Correlation", use_container_width=True):
         sample_query = "List all students with an A or A+ grade and their weekly study hours"
-    if col3.button("📋 Show Table Schema"):
+    if col3.button("📋 Show Table Schema & Fields", use_container_width=True):
         sample_query = "What metrics and columns are in this table?"
-    if col4.button("📉 Low Attendance Students"):
+    if col4.button("📉 Low Attendance Students", use_container_width=True):
         sample_query = "Which students have attendance below 70 percent?"
 
-# Helper function to auto-render interactive charts
 def render_auto_chart(df: pd.DataFrame):
     """
-    Automatically detects whether result rows contain a time series
-    or categorical comparison and renders an interactive chart.
+    Intelligently detects time-series and comparative metrics
+    to render production-grade interactive visualizations.
     """
     cols = df.columns.tolist()
     cols_upper = [c.upper() for c in cols]
     
-    # 1. Time series trend (e.g. contains 'YEAR' and numeric metrics)
+    # 1. Multi-Year Time Series Line Trend
     if any("YEAR" in c for c in cols_upper):
         year_col = [c for c in cols if "YEAR" in c.upper()][0]
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         numeric_cols = [c for c in numeric_cols if c != year_col]
         
         if numeric_cols:
-            st.markdown("##### 📈 Interactive Verified Trend Chart")
-            # If multiple countries exist, pivot or chart directly
+            st.markdown("##### 📈 **Verified Time-Series Visualization**")
             if any("COUNTRY" in c for c in cols_upper):
                 country_col = [c for c in cols if "COUNTRY" in c.upper()][0]
                 try:
                     pivoted = df.pivot(index=year_col, columns=country_col, values=numeric_cols[0])
-                    st.line_chart(pivoted)
+                    st.line_chart(pivoted, use_container_width=True)
                 except Exception:
-                    st.line_chart(df.set_index(year_col)[numeric_cols])
+                    st.line_chart(df.set_index(year_col)[numeric_cols], use_container_width=True)
             else:
-                st.line_chart(df.set_index(year_col)[numeric_cols])
+                st.line_chart(df.set_index(year_col)[numeric_cols], use_container_width=True)
 
-    # 2. Categorical comparison (e.g. Country or Department vs Metric)
-    elif len(cols) == 2 and (any("COUNTRY" in c or "DEPT" in c or "DEPARTMENT" in c for c in cols_upper)):
+    # 2. Categorical Comparison Bar Chart
+    elif len(cols) >= 2 and (any("COUNTRY" in c or "DEPT" in c or "DEPARTMENT" in c for c in cols_upper)):
         cat_col = cols[0]
-        val_col = cols[1]
-        if pd.api.types.is_numeric_dtype(df[val_col]):
-            st.markdown("##### 📊 Interactive Comparison Chart")
-            st.bar_chart(df.set_index(cat_col)[val_col])
+        num_candidates = df.select_dtypes(include=["number"]).columns.tolist()
+        if num_candidates:
+            val_col = num_candidates[0]
+            st.markdown("##### 📊 **Comparative Analytics Bar Chart**")
+            st.bar_chart(df.set_index(cat_col)[val_col], use_container_width=True)
 
-# Render prior chat messages
+# Render Historical Messages
 for chat in st.session_state.chat_history:
     with st.chat_message(chat["role"]):
         st.markdown(chat["content"])
         if "sql" in chat and chat["sql"]:
-            with st.expander("🔍 View Executed SQL & Rows"):
+            with st.expander("🔍 View Inspected SQL & Data Evidence"):
                 st.code(chat["sql"], language="sql")
                 if "df" in chat and chat["df"] is not None:
                     st.dataframe(chat["df"], use_container_width=True)
 
-# Chat Input Form
-user_query = st.chat_input("Ask a question or follow up on the previous answer...")
+# Interactive Chat Input
+user_query = st.chat_input("Ask any question or follow up on previous analysis...")
 query_to_run = user_query or sample_query
 
 if query_to_run:
@@ -166,7 +310,7 @@ if query_to_run:
         st.write(query_to_run)
 
     with st.chat_message("assistant"):
-        with st.spinner("Analyzing question with Gemma & querying Snowflake..."):
+        with st.spinner("⚡ Gemma 4 synthesizing query & executing on Snowflake warehouse..."):
             result = agent.answer_question(query_to_run)
 
         status = result.get("status")
@@ -178,45 +322,72 @@ if query_to_run:
             df = None
             if result["rows"] and result["columns"]:
                 df = pd.DataFrame(result["rows"], columns=result["columns"])
-                # Auto-render chart if applicable (Optional Feature from PDF)
+                # Auto-render chart
                 render_auto_chart(df)
 
-            # Inspectable Evidence Tabs (Mandatory M4 & M5)
-            st.divider()
-            st.subheader("🔍 Inspectable Evidence & Traceability")
+            # Executive Evidence Container (M4 & M5)
+            st.markdown("---")
+            st.markdown("#### 🔍 **Inspectable Evidence & Verification Suite**")
+            
             tab_sql, tab_rows, tab_metrics = st.tabs([
                 "📝 Executed Snowflake SQL",
-                "📋 Live Result Rows",
-                "⚡ Warehouse Performance & Cost"
+                "📋 Live Result Records & Export",
+                "⚡ Warehouse Compute & Cost Analytics"
             ])
 
             with tab_sql:
                 st.code(result["sql"], language="sql")
-                st.caption("Validated read-only query executed directly on Snowflake warehouse at question time.")
+                st.caption("✅ Validated read-only query executed directly on Snowflake compute warehouse at question time.")
 
             with tab_rows:
                 if df is not None and not df.empty:
                     st.dataframe(df, use_container_width=True)
                     csv_data = df.to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        label="📥 Export Verified Rows (CSV)",
+                        label="📥 Download Grounded Data (CSV)",
                         data=csv_data,
-                        file_name=f"datamind_query_results.csv",
-                        mime="text/csv"
+                        file_name=f"datamind_snowflake_result.csv",
+                        mime="text/csv",
+                        use_container_width=False
                     )
                 else:
                     st.warning("No rows returned from the warehouse for the given criteria.")
 
             with tab_metrics:
+                # KPI Grid
                 m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Execution Latency", f"{result['execution_time_ms']} ms")
-                m2.metric("Rows Examined", result["row_count"])
-                m3.metric("Est. Credits Consumed", f"{result.get('cost_estimate_credits', 0.0)} cr")
-                m4.metric("AI Reasoner", "Gemma 4 (26B MoE)")
+                with m1:
+                    st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Query Latency</div>
+                        <div class="kpi-value">{result['execution_time_ms']} ms</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with m2:
+                    st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Rows Evaluated</div>
+                        <div class="kpi-value">{result['row_count']}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with m3:
+                    st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Est. Snowflake Credits</div>
+                        <div class="kpi-value">{result.get('cost_estimate_credits', 0.0)} cr</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with m4:
+                    st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Reasoning Engine</div>
+                        <div class="kpi-value" style="font-size: 1.1rem; color: #8AB4F8;">Gemma 4 (26B)</div>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 st.caption(f"Connected to Snowflake Warehouse `COMPUTE_WH` on `DATAMIND_DB.PUBLIC`. Claim citations verified against active query index.")
 
-            # Store in session state
+            # Record in session state
             st.session_state.chat_history.append({
                 "role": "assistant",
                 "content": result["direct_answer"],
@@ -225,14 +396,14 @@ if query_to_run:
             })
 
         elif status == "ambiguous":
-            st.warning(f"**Ambiguity Detected (M6 Guardrail):**\n\n{result['direct_answer']}")
+            st.warning(f"**⚠️ Ambiguity Detected (M6 Guardrail):**\n\n{result['direct_answer']}")
             st.session_state.chat_history.append({"role": "assistant", "content": result["direct_answer"]})
         elif status == "refused":
-            st.error(f"**Security Guardrail Refusal (M6):**\n\n{result['direct_answer']}")
+            st.error(f"**🛑 Security Guardrail Refusal (M6):**\n\n{result['direct_answer']}")
             st.session_state.chat_history.append({"role": "assistant", "content": result["direct_answer"]})
         elif status == "out_of_scope":
-            st.info(f"**Scope Boundary (M6):**\n\n{result['direct_answer']}")
+            st.info(f"**ℹ️ Dataset Boundary Limitation (M6):**\n\n{result['direct_answer']}")
             st.session_state.chat_history.append({"role": "assistant", "content": result["direct_answer"]})
         else:
-            st.error(f"**Execution Error:**\n\n{result['direct_answer']}")
+            st.error(f"**❌ Execution Error:**\n\n{result['direct_answer']}")
             st.session_state.chat_history.append({"role": "assistant", "content": result["direct_answer"]})
